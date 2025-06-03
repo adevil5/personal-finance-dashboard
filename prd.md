@@ -12,14 +12,17 @@ The Personal Finance Dashboard (PFD) is a secure, web-based application designed
 ## Product Overview
 
 ### Vision Statement
+
 Empower users to take control of their personal finances through intuitive expense tracking, insightful analytics, and secure data management.
 
 ### Target Audience
+
 - **Primary:** Individual users seeking personal expense management
 - **Secondary:** Small business owners tracking business expenses
 - **Technical:** Hiring managers and technical evaluators assessing development skills
 
 ### Success Metrics
+
 - User registration and retention rates
 - Daily/weekly active usage
 - Data entry accuracy and completeness
@@ -31,6 +34,7 @@ Empower users to take control of their personal finances through intuitive expen
 ### Technology Stack
 
 #### Backend
+
 - **Framework:** Django 5.2.1 (LTS)
 - **Database:** PostgreSQL 17+
 - **Authentication:** Django Allauth with MFA support
@@ -42,6 +46,7 @@ Empower users to take control of their personal finances through intuitive expen
 - **Package Management:** uv for fast, reliable dependency management
 
 #### Frontend
+
 - **Base:** Django Templates with HTMX
 - **JavaScript:** TypeScript 5.x with strict mode enabled
 - **Build Tool:** Vite for fast development and optimized builds
@@ -52,6 +57,7 @@ Empower users to take control of their personal finances through intuitive expen
 - **Forms:** Django Crispy Forms with TypeScript validation
 
 #### Testing & Quality Assurance
+
 - **Unit/Integration Testing:** pytest with Django test framework
 - **API Testing:** pytest with DRF test client and factory-boy
 - **E2E Testing:** Playwright with TypeScript for cross-browser testing
@@ -62,6 +68,7 @@ Empower users to take control of their personal finances through intuitive expen
 - **Type Checking:** mypy for Python, TypeScript strict mode for frontend
 
 #### Security
+
 - **HTTPS:** TLS 1.3 minimum
 - **CSRF Protection:** Django built-in middleware
 - **SQL Injection:** Django ORM with parameterized queries
@@ -77,6 +84,7 @@ Empower users to take control of their personal finances through intuitive expen
 ### Functional Requirements
 
 #### User Management (AUTH)
+
 - **AUTH-001:** User registration with email verification
 - **AUTH-002:** Secure login with optional 2FA (TOTP)
 - **AUTH-003:** Password reset functionality
@@ -84,6 +92,7 @@ Empower users to take control of their personal finances through intuitive expen
 - **AUTH-005:** Account deactivation/deletion with data retention policies
 
 #### Expense Management (EXP)
+
 - **EXP-001:** Create, read, update, delete expense transactions
 - **EXP-002:** Categorize expenses with hierarchical categories
 - **EXP-003:** Add receipts/attachments to transactions
@@ -92,12 +101,14 @@ Empower users to take control of their personal finances through intuitive expen
 - **EXP-006:** Multi-currency support with exchange rates
 
 #### Budget Management (BUD)
+
 - **BUD-001:** Create monthly/yearly budgets by category
 - **BUD-002:** Budget vs. actual spending alerts
 - **BUD-003:** Budget rollover and adjustments
 - **BUD-004:** Savings goals tracking
 
 #### Analytics & Reporting (ANA)
+
 - **ANA-001:** Spending trends over time
 - **ANA-002:** Category-wise expense breakdown
 - **ANA-003:** Monthly/yearly expense reports
@@ -105,6 +116,7 @@ Empower users to take control of their personal finances through intuitive expen
 - **ANA-005:** Real-time dashboard with key metrics
 
 #### Data Management (DATA)
+
 - **DATA-001:** CSV/Excel import with validation
 - **DATA-002:** Data export in multiple formats
 - **DATA-003:** Data backup and restore
@@ -113,12 +125,14 @@ Empower users to take control of their personal finances through intuitive expen
 ### Non-Functional Requirements
 
 #### Performance
+
 - **PERF-001:** Page load times < 2 seconds
 - **PERF-002:** API response times < 500ms
 - **PERF-003:** Support 100+ concurrent users
 - **PERF-004:** Database queries optimized with proper indexing
 
 #### Security
+
 - **SEC-001:** OWASP Top 10 compliance
 - **SEC-002:** PII encryption at rest and in transit (AES-256)
 - **SEC-003:** Regular security audits and vulnerability scans
@@ -129,12 +143,14 @@ Empower users to take control of their personal finances through intuitive expen
 - **SEC-008:** Secure file storage with KMS encryption
 
 #### Scalability
+
 - **SCALE-001:** Horizontal scaling capability
 - **SCALE-002:** Database sharding readiness
 - **SCALE-003:** CDN integration for static assets
 - **SCALE-004:** Caching strategy implementation
 
 #### Reliability
+
 - **REL-001:** 99.5% uptime SLA
 - **REL-002:** Automated backups with point-in-time recovery
 - **REL-003:** Error handling and graceful degradation
@@ -1022,6 +1038,7 @@ volumes:
 This project **mandates Test-Driven Development** for all features. Every component must be built following the Red-Green-Refactor cycle to ensure reliability, maintainability, and confidence in the financial data handling.
 
 #### TDD Workflow
+
 1. **Red:** Write a failing test that defines the desired behavior
 2. **Green:** Write the minimum code to make the test pass
 3. **Refactor:** Improve the code while keeping tests green
@@ -1030,6 +1047,7 @@ This project **mandates Test-Driven Development** for all features. Every compon
 #### TDD Implementation Strategy
 
 **Phase 1: Core Models (Week 1)**
+
 ```python
 # tests/test_models/test_user_model.py
 class TestUserModel(TestCase):
@@ -1121,6 +1139,7 @@ class TestTransactionModel(TestCase):
 ```
 
 **Phase 2: API Endpoints (Week 2)**
+
 ```python
 # tests/test_api/test_transaction_api.py
 class TestTransactionAPI(APITestCase):
@@ -1221,6 +1240,7 @@ class TestAuditLogging(APITestCase):
 ```
 
 **Phase 3: Security Features (Week 3)**
+
 ```python
 # tests/test_security/test_encryption.py
 class TestPIIEncryption(TestCase):
@@ -1294,6 +1314,7 @@ class TestFileSecurityScanning(TestCase):
 ```
 
 **Phase 4: Frontend Integration (Week 4)**
+
 ```python
 # tests/test_frontend/test_transaction_form.py
 class TestTransactionForm(TestCase):
@@ -1372,6 +1393,7 @@ class TestDashboardViews(TestCase):
 **Mandatory Test Coverage by Component:**
 
 #### Models (95% coverage required)
+
 - [ ] User model encryption/decryption
 - [ ] Transaction CRUD operations
 - [ ] Category hierarchical relationships
@@ -1380,6 +1402,7 @@ class TestDashboardViews(TestCase):
 - [ ] Data retention policy enforcement
 
 #### API Endpoints (90% coverage required)
+
 - [ ] Authentication and authorization
 - [ ] CRUD operations for all resources
 - [ ] Input validation and error handling
@@ -1388,6 +1411,7 @@ class TestDashboardViews(TestCase):
 - [ ] Cross-user data isolation
 
 #### Security Features (100% coverage required)
+
 - [ ] PII encryption/decryption cycles
 - [ ] Audit logging for all PII access
 - [ ] File upload security scanning
@@ -1396,6 +1420,7 @@ class TestDashboardViews(TestCase):
 - [ ] Session security and timeout
 
 #### Frontend Components (85% coverage required)
+
 - [ ] Form validation and submission
 - [ ] Chart rendering with real data
 - [ ] User interaction workflows
@@ -1403,6 +1428,7 @@ class TestDashboardViews(TestCase):
 - [ ] Responsive design breakpoints
 
 #### Integration Tests (80% coverage required)
+
 - [ ] End-to-end user workflows
 - [ ] Database transaction integrity
 - [ ] File upload and processing
@@ -1412,6 +1438,7 @@ class TestDashboardViews(TestCase):
 ### TDD Development Workflow
 
 #### Daily TDD Cycle
+
 ```bash
 # 1. Start with failing test
 python manage.py test tests.test_models.test_user_model.TestUserModel.test_user_creation_with_encrypted_phone --keepdb --debug-mode
@@ -1431,6 +1458,7 @@ coverage report --show-missing
 ```
 
 #### Test Organization Structure
+
 ```
 tests/
 ├── __init__.py
@@ -1473,6 +1501,7 @@ tests/
 ```
 
 #### Continuous Testing Setup
+
 ```python
 # conftest.py - pytest configuration
 import pytest
@@ -1940,18 +1969,21 @@ finance-dashboard/
 ### Phase 1: Core Foundation with TDD (Week 1)
 
 **Day 1-2: User Model & Authentication**
+
 - Write tests for user creation, encryption, authentication
 - Implement encrypted user fields (phone, profile data)
 - Build authentication views with test coverage
 - Target: 95% model coverage, 90% auth coverage
 
 **Day 3-4: Category System**
+
 - Test hierarchical category relationships
 - Implement category CRUD with user isolation
 - Build category API endpoints
 - Target: 95% category model coverage
 
 **Day 5-7: Basic Transaction Model**
+
 - Test transaction encryption, validation, relationships
 - Implement transaction CRUD operations
 - Add basic transaction API endpoints
@@ -1960,18 +1992,21 @@ finance-dashboard/
 ### Phase 2: API Development with TDD (Week 2)
 
 **Day 8-10: Transaction API**
+
 - Test all CRUD operations, validation, filtering
 - Implement transaction list/create/update/delete endpoints
 - Add pagination, sorting, search functionality
 - Target: 90% API endpoint coverage
 
 **Day 11-12: Security & Audit Logging**
+
 - Test PII access logging, audit trail creation
 - Implement audit middleware and logging systems
 - Add security headers and rate limiting
 - Target: 100% security feature coverage
 
 **Day 13-14: File Upload & Processing**
+
 - Test file validation, PII scanning, secure storage
 - Implement receipt upload with security scanning
 - Add file management and cleanup
@@ -1980,18 +2015,21 @@ finance-dashboard/
 ### Phase 3: Advanced Features with TDD (Week 3)
 
 **Day 15-17: Budget System**
+
 - Test budget calculations, period validation, alerts
 - Implement budget CRUD operations and tracking
 - Add budget vs. actual spending analytics
 - Target: 95% budget system coverage
 
 **Day 18-19: Analytics & Reporting**
+
 - Test chart data generation, filtering, performance
 - Implement analytics endpoints and calculations
 - Add report generation and export functionality
 - Target: 85% analytics coverage
 
 **Day 20-21: Data Import/Export**
+
 - Test CSV parsing, validation, bulk operations
 - Implement import/export functionality
 - Add data transformation and error handling
@@ -2000,18 +2038,21 @@ finance-dashboard/
 ### Phase 4: Frontend & Integration with TDD (Week 4)
 
 **Day 22-24: Frontend Components**
+
 - Test form validation, user interactions, error handling
 - Implement responsive UI with HTMX interactions
 - Add chart visualization and real-time updates
 - Target: 85% frontend coverage
 
 **Day 25-26: Integration Testing**
+
 - Test complete user workflows end-to-end
 - Implement performance optimizations
 - Add comprehensive error handling
 - Target: 80% integration coverage
 
 **Day 27-28: Production Readiness**
+
 - Test deployment pipeline, monitoring, health checks
 - Implement CI/CD with automated testing
 - Add comprehensive documentation
@@ -2020,12 +2061,14 @@ finance-dashboard/
 ### TDD Success Metrics
 
 **Code Quality Gates:**
+
 - [ ] All tests must pass before any commit
 - [ ] Minimum coverage thresholds enforced by CI
 - [ ] No production deployment without test coverage
 - [ ] Automated testing in pull request workflow
 
 **Daily TDD Metrics:**
+
 - Tests written before implementation: 100%
 - Test coverage maintained above thresholds
 - Red-Green-Refactor cycles documented
@@ -2034,6 +2077,7 @@ finance-dashboard/
 ## Risk Assessment
 
 ### Technical Risks
+
 - **Database Performance:** Large transaction datasets may impact query performance
   - *Mitigation:* Implement proper indexing, pagination, and caching
 - **Security Vulnerabilities:** Financial data requires high security standards
@@ -2042,6 +2086,7 @@ finance-dashboard/
   - *Mitigation:* Automated backups, transaction logs, disaster recovery plan
 
 ### Business Risks
+
 - **User Adoption:** Competition with established financial apps
   - *Mitigation:* Focus on simplicity, security, and unique features
 - **Scalability:** Growing user base may outpace infrastructure
@@ -2050,18 +2095,21 @@ finance-dashboard/
 ## Success Criteria
 
 ### Technical Excellence
+
 - [ ] 90%+ test coverage
 - [ ] Sub-500ms API response times
 - [ ] Zero critical security vulnerabilities
 - [ ] 99.5% uptime in production
 
 ### User Experience
+
 - [ ] Intuitive navigation and workflow
 - [ ] Mobile-responsive design
 - [ ] Fast page load times
 - [ ] Accessibility compliance (WCAG 2.1 AA)
 
 ### Code Quality
+
 - [ ] Clean, documented, maintainable code
 - [ ] Consistent coding standards
 - [ ] Comprehensive API documentation
@@ -2070,7 +2118,9 @@ finance-dashboard/
 This PRD serves as a comprehensive guide for building a production-ready personal finance dashboard that demonstrates full-stack development expertise while solving real user problems in financial management.
 extend-exclude = '''
 /(
-  # directories
+
+# directories
+
   \.eggs
   | \.git
   | \.hg
@@ -2130,6 +2180,7 @@ omit = [
 [tool.bandit]
 exclude_dirs = ["tests", "migrations"]
 skips = ["B101", "B601"]  # Skip assert_used and shell=True in tests
+
 ```
 
 ### Development Workflow with uv
@@ -2297,6 +2348,7 @@ volumes:
 This project **mandates Test-Driven Development** for all features. Every component must be built following the Red-Green-Refactor cycle to ensure reliability, maintainability, and confidence in the financial data handling.
 
 #### TDD Workflow
+
 1. **Red:** Write a failing test that defines the desired behavior
 2. **Green:** Write the minimum code to make the test pass
 3. **Refactor:** Improve the code while keeping tests green
@@ -2305,6 +2357,7 @@ This project **mandates Test-Driven Development** for all features. Every compon
 #### TDD Implementation Strategy
 
 **Phase 1: Core Models (Week 1)**
+
 ```python
 # tests/test_models/test_user_model.py
 class TestUserModel(TestCase):
@@ -2396,6 +2449,7 @@ class TestTransactionModel(TestCase):
 ```
 
 **Phase 2: API Endpoints (Week 2)**
+
 ```python
 # tests/test_api/test_transaction_api.py
 class TestTransactionAPI(APITestCase):
@@ -2496,6 +2550,7 @@ class TestAuditLogging(APITestCase):
 ```
 
 **Phase 3: Security Features (Week 3)**
+
 ```python
 # tests/test_security/test_encryption.py
 class TestPIIEncryption(TestCase):
@@ -2569,6 +2624,7 @@ class TestFileSecurityScanning(TestCase):
 ```
 
 **Phase 4: Frontend Integration (Week 4)**
+
 ```python
 # tests/test_frontend/test_transaction_form.py
 class TestTransactionForm(TestCase):
@@ -2647,6 +2703,7 @@ class TestDashboardViews(TestCase):
 **Mandatory Test Coverage by Component:**
 
 #### Models (95% coverage required)
+
 - [ ] User model encryption/decryption
 - [ ] Transaction CRUD operations
 - [ ] Category hierarchical relationships
@@ -2655,6 +2712,7 @@ class TestDashboardViews(TestCase):
 - [ ] Data retention policy enforcement
 
 #### API Endpoints (90% coverage required)
+
 - [ ] Authentication and authorization
 - [ ] CRUD operations for all resources
 - [ ] Input validation and error handling
@@ -2663,6 +2721,7 @@ class TestDashboardViews(TestCase):
 - [ ] Cross-user data isolation
 
 #### Security Features (100% coverage required)
+
 - [ ] PII encryption/decryption cycles
 - [ ] Audit logging for all PII access
 - [ ] File upload security scanning
@@ -2671,6 +2730,7 @@ class TestDashboardViews(TestCase):
 - [ ] Session security and timeout
 
 #### Frontend Components (85% coverage required)
+
 - [ ] Form validation and submission
 - [ ] Chart rendering with real data
 - [ ] User interaction workflows
@@ -2678,6 +2738,7 @@ class TestDashboardViews(TestCase):
 - [ ] Responsive design breakpoints
 
 #### Integration Tests (80% coverage required)
+
 - [ ] End-to-end user workflows
 - [ ] Database transaction integrity
 - [ ] File upload and processing
@@ -2687,6 +2748,7 @@ class TestDashboardViews(TestCase):
 ### TDD Development Workflow
 
 #### Daily TDD Cycle
+
 ```bash
 # 1. Start with failing test
 python manage.py test tests.test_models.test_user_model.TestUserModel.test_user_creation_with_encrypted_phone --keepdb --debug-mode
@@ -2706,6 +2768,7 @@ coverage report --show-missing
 ```
 
 #### Test Organization Structure
+
 ```
 tests/
 ├── __init__.py
@@ -2748,6 +2811,7 @@ tests/
 ```
 
 #### Continuous Testing Setup
+
 ```python
 # conftest.py - pytest configuration
 import pytest
@@ -3215,18 +3279,21 @@ finance-dashboard/
 ### Phase 1: Core Foundation with TDD (Week 1)
 
 **Day 1-2: User Model & Authentication**
+
 - Write tests for user creation, encryption, authentication
 - Implement encrypted user fields (phone, profile data)
 - Build authentication views with test coverage
 - Target: 95% model coverage, 90% auth coverage
 
 **Day 3-4: Category System**
+
 - Test hierarchical category relationships
 - Implement category CRUD with user isolation
 - Build category API endpoints
 - Target: 95% category model coverage
 
 **Day 5-7: Basic Transaction Model**
+
 - Test transaction encryption, validation, relationships
 - Implement transaction CRUD operations
 - Add basic transaction API endpoints
@@ -3235,18 +3302,21 @@ finance-dashboard/
 ### Phase 2: API Development with TDD (Week 2)
 
 **Day 8-10: Transaction API**
+
 - Test all CRUD operations, validation, filtering
 - Implement transaction list/create/update/delete endpoints
 - Add pagination, sorting, search functionality
 - Target: 90% API endpoint coverage
 
 **Day 11-12: Security & Audit Logging**
+
 - Test PII access logging, audit trail creation
 - Implement audit middleware and logging systems
 - Add security headers and rate limiting
 - Target: 100% security feature coverage
 
 **Day 13-14: File Upload & Processing**
+
 - Test file validation, PII scanning, secure storage
 - Implement receipt upload with security scanning
 - Add file management and cleanup
@@ -3255,18 +3325,21 @@ finance-dashboard/
 ### Phase 3: Advanced Features with TDD (Week 3)
 
 **Day 15-17: Budget System**
+
 - Test budget calculations, period validation, alerts
 - Implement budget CRUD operations and tracking
 - Add budget vs. actual spending analytics
 - Target: 95% budget system coverage
 
 **Day 18-19: Analytics & Reporting**
+
 - Test chart data generation, filtering, performance
 - Implement analytics endpoints and calculations
 - Add report generation and export functionality
 - Target: 85% analytics coverage
 
 **Day 20-21: Data Import/Export**
+
 - Test CSV parsing, validation, bulk operations
 - Implement import/export functionality
 - Add data transformation and error handling
@@ -3275,18 +3348,21 @@ finance-dashboard/
 ### Phase 4: Frontend & Integration with TDD (Week 4)
 
 **Day 22-24: Frontend Components**
+
 - Test form validation, user interactions, error handling
 - Implement responsive UI with HTMX interactions
 - Add chart visualization and real-time updates
 - Target: 85% frontend coverage
 
 **Day 25-26: Integration Testing**
+
 - Test complete user workflows end-to-end
 - Implement performance optimizations
 - Add comprehensive error handling
 - Target: 80% integration coverage
 
 **Day 27-28: Production Readiness**
+
 - Test deployment pipeline, monitoring, health checks
 - Implement CI/CD with automated testing
 - Add comprehensive documentation
@@ -3295,12 +3371,14 @@ finance-dashboard/
 ### TDD Success Metrics
 
 **Code Quality Gates:**
+
 - [ ] All tests must pass before any commit
 - [ ] Minimum coverage thresholds enforced by CI
 - [ ] No production deployment without test coverage
 - [ ] Automated testing in pull request workflow
 
 **Daily TDD Metrics:**
+
 - Tests written before implementation: 100%
 - Test coverage maintained above thresholds
 - Red-Green-Refactor cycles documented
@@ -3309,6 +3387,7 @@ finance-dashboard/
 ## Risk Assessment
 
 ### Technical Risks
+
 - **Database Performance:** Large transaction datasets may impact query performance
   - *Mitigation:* Implement proper indexing, pagination, and caching
 - **Security Vulnerabilities:** Financial data requires high security standards
@@ -3317,6 +3396,7 @@ finance-dashboard/
   - *Mitigation:* Automated backups, transaction logs, disaster recovery plan
 
 ### Business Risks
+
 - **User Adoption:** Competition with established financial apps
   - *Mitigation:* Focus on simplicity, security, and unique features
 - **Scalability:** Growing user base may outpace infrastructure
@@ -3325,18 +3405,21 @@ finance-dashboard/
 ## Success Criteria
 
 ### Technical Excellence
+
 - [ ] 90%+ test coverage
 - [ ] Sub-500ms API response times
 - [ ] Zero critical security vulnerabilities
 - [ ] 99.5% uptime in production
 
 ### User Experience
+
 - [ ] Intuitive navigation and workflow
 - [ ] Mobile-responsive design
 - [ ] Fast page load times
 - [ ] Accessibility compliance (WCAG 2.1 AA)
 
 ### Code Quality
+
 - [ ] Clean, documented, maintainable code
 - [ ] Consistent coding standards
 - [ ] Comprehensive API documentation
