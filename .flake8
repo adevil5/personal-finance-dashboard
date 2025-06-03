@@ -1,0 +1,21 @@
+[flake8]
+max-line-length = 88
+extend-ignore = E203, W503
+exclude =
+    .git,
+    __pycache__,
+    docs/source/conf.py,
+    old,
+    build,
+    dist,
+    migrations,
+    venv,
+    .venv,
+    .tox,
+    .eggs
+
+per-file-ignores =
+    config/settings/development.py:F405
+    config/settings/testing.py:F405
+    config/settings/production.py:F405
+    config/settings/__init__.py:F401
