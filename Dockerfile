@@ -2,6 +2,7 @@
 
 # Stage 1: Python dependencies
 FROM python:3.12-slim as python-deps
+COPY --from=ghcr.io/astral-sh/uv:0.7.11 /uv /uvx /bin
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -11,20 +12,15 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install uv for faster dependency management
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
-ENV PATH="/root/.cargo/bin:${PATH}"
-
 WORKDIR /app
 
 # Copy dependency files
 COPY pyproject.toml ./
-COPY requirements*.txt ./
 
 # Create virtual environment and install dependencies
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
-RUN uv pip install --no-cache -r requirements.txt
+RUN uv pip install --no-cache .
 
 # Stage 2: Frontend builder
 FROM node:20-slim as frontend-builder
