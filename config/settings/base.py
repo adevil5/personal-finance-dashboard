@@ -201,9 +201,12 @@ ACCOUNT_EMAIL_VERIFICATION = "mandatory"
 ACCOUNT_SESSION_REMEMBER = True
 ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
 
+# Redis Configuration
+REDIS_URL = get_env_variable("REDIS_URL", "redis://localhost:6379/0")
+
 # Celery Configuration
-CELERY_BROKER_URL = get_env_variable("REDIS_URL", "redis://localhost:6379/0")
-CELERY_RESULT_BACKEND = get_env_variable("REDIS_URL", "redis://localhost:6379/0")
+CELERY_BROKER_URL = get_env_variable("CELERY_BROKER_URL", REDIS_URL)
+CELERY_RESULT_BACKEND = get_env_variable("CELERY_RESULT_BACKEND", REDIS_URL)
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"

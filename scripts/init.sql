@@ -5,7 +5,7 @@
 -- CREATE DATABASE finance_dashboard;
 
 -- Connect to the database
-\c finance_dashboard;
+\c personal_finance;
 
 -- Enable required extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -21,11 +21,12 @@ EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;
 
--- Set up performance optimization settings
-ALTER DATABASE finance_dashboard SET shared_buffers = '256MB';
-ALTER DATABASE finance_dashboard SET effective_cache_size = '1GB';
-ALTER DATABASE finance_dashboard SET maintenance_work_mem = '64MB';
-ALTER DATABASE finance_dashboard SET work_mem = '4MB';
+-- Note: These settings would require a restart to take effect
+-- They should be set in postgresql.conf or during container initialization instead
+-- ALTER DATABASE personal_finance SET shared_buffers = '256MB';
+-- ALTER DATABASE personal_finance SET effective_cache_size = '1GB';
+-- ALTER DATABASE personal_finance SET maintenance_work_mem = '64MB';
+-- ALTER DATABASE personal_finance SET work_mem = '4MB';
 
 -- Create indexes for better performance (these will be created by Django migrations, but listed here for reference)
 -- CREATE INDEX IF NOT EXISTS idx_transaction_user_date ON expenses_transaction(user_id, date DESC);

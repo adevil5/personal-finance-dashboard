@@ -33,11 +33,11 @@ This document serves as the master task list for the Personal Finance Dashboard 
   - [x] Create database initialization scripts
   - [x] Configure database migrations structure
 
-- [ ] **0.1.4** Docker configuration
-  - [ ] Create Dockerfile with multi-stage builds
-  - [ ] Set up docker-compose.yml for local development
-  - [ ] Configure volumes for data persistence
-  - [ ] Test container builds and connectivity
+- [x] **0.1.4** Docker configuration
+  - [x] Create Dockerfile with multi-stage builds
+  - [x] Set up docker-compose.yml for local development
+  - [x] Configure volumes for data persistence
+  - [x] Test container builds and connectivity
 
 - [ ] **0.1.5** Testing infrastructure
   - [ ] Set up pytest and pytest-django

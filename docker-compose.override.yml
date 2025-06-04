@@ -1,0 +1,57 @@
+# Development overrides for docker-compose
+# This file is automatically loaded by docker-compose in development
+
+services:
+  web:
+    # Use development server instead of gunicorn
+    command: python manage.py runserver 0.0.0.0:8000
+    # Enable hot reloading
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings.development
+      - PYTHONUNBUFFERED=1
+      - DJANGO_DEBUG=True
+    # Mount source code for hot reloading
+    volumes:
+      - .:/app
+      - /app/node_modules  # Prevent overwriting node_modules
+    stdin_open: true
+    tty: true
+
+  celery:
+    # Use regular celery command in development (watchmedo not installed yet)
+    command: celery -A config worker -l info --events
+    environment:
+      - DJANGO_DEBUG=True
+    volumes:
+      - .:/app
+
+  # Add development tools
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: pfd_mailhog
+    ports:
+      - "1025:1025"  # SMTP server
+      - "8025:8025"  # Web UI
+    profiles:
+      - dev-tools
+
+  # pgAdmin for database management
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pfd_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@example.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+      PGADMIN_LISTEN_PORT: 80
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - db
+    profiles:
+      - dev-tools
+
+volumes:
+  pgadmin_data:
+    driver: local
