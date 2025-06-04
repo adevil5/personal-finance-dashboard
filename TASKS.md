@@ -39,12 +39,12 @@ This document serves as the master task list for the Personal Finance Dashboard 
   - [x] Configure volumes for data persistence
   - [x] Test container builds and connectivity
 
-- [ ] **0.1.5** Testing infrastructure
-  - [ ] Set up pytest and pytest-django
-  - [ ] Configure test settings and database
-  - [ ] Set up coverage reporting
-  - [ ] Create test directory structure
-  - [ ] Configure factory-boy for test data
+- [x] **0.1.5** Testing infrastructure
+  - [x] Set up pytest and pytest-django
+  - [x] Configure test settings and database
+  - [x] Set up coverage reporting
+  - [x] Create test directory structure
+  - [x] Configure factory-boy for test data
 
 - [ ] **0.1.6** Frontend build system
   - [ ] Set up Vite for TypeScript/JavaScript building
