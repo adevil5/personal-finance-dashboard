@@ -46,12 +46,12 @@ This document serves as the master task list for the Personal Finance Dashboard 
   - [x] Create test directory structure
   - [x] Configure factory-boy for test data
 
-- [ ] **0.1.6** Frontend build system
-  - [ ] Set up Vite for TypeScript/JavaScript building
-  - [ ] Configure Tailwind CSS
-  - [ ] Set up TypeScript with strict mode
-  - [ ] Configure ESLint and prettier
-  - [ ] Set up static files handling
+- [x] **0.1.6** Frontend build system
+  - [x] Set up Vite for TypeScript/JavaScript building
+  - [x] Configure Tailwind CSS
+  - [x] Set up TypeScript with strict mode
+  - [x] Configure ESLint and prettier
+  - [x] Set up static files handling
 
 ## Phase 1: Core Models & Security (Days 3-7)
 

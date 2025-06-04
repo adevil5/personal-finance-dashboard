@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+
+# Build output
+static/dist/
+dist/
+
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# Database
+*.sqlite3
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Coverage
+coverage/
+htmlcov/
+.coverage
+.nyc_output
+
+# Temporary files
+tmp/
+temp/
