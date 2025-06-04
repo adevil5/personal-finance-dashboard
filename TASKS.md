@@ -57,12 +57,12 @@ This document serves as the master task list for the Personal Finance Dashboard 
 
 ### 1.1 PII Encryption Infrastructure
 
-- [ ] **1.1.1** Create encryption utilities
-  - [ ] Write tests for PIIFieldEncryption class
-  - [ ] Implement encryption/decryption with Fernet
-  - [ ] Add support for key rotation
-  - [ ] Create custom encrypted field types (EncryptedCharField, EncryptedDecimalField, EncryptedTextField)
-  - [ ] Test encryption with various data types and edge cases
+- [x] **1.1.1** Create encryption utilities
+  - [x] Write tests for PIIFieldEncryption class
+  - [x] Implement encryption/decryption with Fernet
+  - [x] Add support for key rotation
+  - [x] Create custom encrypted field types (EncryptedCharField, EncryptedDecimalField, EncryptedTextField)
+  - [x] Test encryption with various data types and edge cases
 
 - [ ] **1.1.2** PII detection and masking
   - [ ] Write tests for PII detection patterns
