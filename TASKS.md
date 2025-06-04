@@ -64,12 +64,12 @@ This document serves as the master task list for the Personal Finance Dashboard 
   - [x] Create custom encrypted field types (EncryptedCharField, EncryptedDecimalField, EncryptedTextField)
   - [x] Test encryption with various data types and edge cases
 
-- [ ] **1.1.2** PII detection and masking
-  - [ ] Write tests for PII detection patterns
-  - [ ] Implement PIIDetector class with regex patterns
-  - [ ] Create data masking utilities for non-production environments
-  - [ ] Add PII-safe logging formatter
-  - [ ] Test masking functionality comprehensively
+- [x] **1.1.2** PII detection and masking
+  - [x] Write tests for PII detection patterns
+  - [x] Implement PIIDetector class with regex patterns
+  - [x] Create data masking utilities for non-production environments
+  - [x] Add PII-safe logging formatter
+  - [x] Test masking functionality comprehensively
 
 ### 1.2 Audit Logging System
 

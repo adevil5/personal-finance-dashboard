@@ -10,6 +10,16 @@ from .fields import (
     EncryptedPhoneField,
     EncryptedTextField,
 )
+from .logging import AuditLogger, PIISafeFilter, PIISafeFormatter, PIISafeJSONFormatter
+from .masking import (
+    DataMasker,
+    PIIMasker,
+    mask_credit_card,
+    mask_email,
+    mask_phone,
+    mask_ssn,
+)
+from .pii_detection import PIIDetector
 
 __all__ = [
     "PIIFieldEncryption",
@@ -20,4 +30,15 @@ __all__ = [
     "EncryptedDecimalField",
     "EncryptedEmailField",
     "EncryptedPhoneField",
+    "PIIDetector",
+    "PIIMasker",
+    "DataMasker",
+    "mask_email",
+    "mask_phone",
+    "mask_ssn",
+    "mask_credit_card",
+    "PIISafeFormatter",
+    "PIISafeJSONFormatter",
+    "PIISafeFilter",
+    "AuditLogger",
 ]
