@@ -87,12 +87,12 @@ This document serves as the master task list for the Personal Finance Dashboard 
 
 ### 1.3 User Management
 
-- [ ] **1.3.1** Custom User model
-  - [ ] Write tests for User model with encrypted fields
-  - [ ] Implement User model extending AbstractUser
-  - [ ] Add encrypted phone field
-  - [ ] Add timezone and currency preferences
-  - [ ] Test user creation and field encryption
+- [x] **1.3.1** Custom User model
+  - [x] Write tests for User model with encrypted fields
+  - [x] Implement User model extending AbstractUser
+  - [x] Add encrypted phone field
+  - [x] Add timezone and currency preferences
+  - [x] Test user creation and field encryption
 
 - [ ] **1.3.2** User Profile model
   - [ ] Write tests for UserProfile model
