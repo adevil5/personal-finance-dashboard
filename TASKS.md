@@ -101,11 +101,11 @@ This document serves as the master task list for the Personal Finance Dashboard 
   - [x] Test profile creation and updates
 
 - [ ] **1.3.3** Authentication system
-  - [ ] Write tests for authentication views
-  - [ ] Implement registration with email verification
-  - [ ] Add login/logout functionality
-  - [ ] Implement password reset
-  - [ ] Add 2FA support with TOTP
+  - [x] Write tests for authentication views
+  - [x] Implement registration with email verification
+  - [x] Add login/logout functionality
+  - [x] Implement password reset
+  - [x] Add 2FA support with TOTP
   - [ ] Test all authentication flows
 
 ### 1.4 Category System

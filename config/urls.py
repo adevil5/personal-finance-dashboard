@@ -12,6 +12,8 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     # Django Allauth
     path("accounts/", include("allauth.urls")),
+    # Custom authentication
+    path("auth/", include("apps.users.urls")),
     # API endpoints
     path("api/v1/", include("apps.core.api_urls")),
     # App URLs

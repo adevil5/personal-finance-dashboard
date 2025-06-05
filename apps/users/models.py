@@ -5,6 +5,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 
 from apps.core.security.fields import (
+    EncryptedCharField,
     EncryptedDecimalField,
     EncryptedPhoneField,
     EncryptedTextField,
@@ -56,6 +57,25 @@ class User(AbstractUser):
         choices=CURRENCY_CHOICES,
         default="USD",
         help_text="User's preferred currency",
+    )
+
+    # Two-factor authentication fields
+    totp_secret = EncryptedCharField(
+        max_length=36,  # Accommodates encrypted 32-char base32 secret
+        blank=True,
+        null=True,
+        help_text="TOTP secret key for 2FA (encrypted)",
+    )
+
+    is_2fa_enabled = models.BooleanField(
+        default=False,
+        help_text="Whether two-factor authentication is enabled",
+    )
+
+    backup_codes = EncryptedTextField(
+        blank=True,
+        null=True,
+        help_text="2FA backup codes (encrypted, JSON format)",
     )
 
     class Meta:

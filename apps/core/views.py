@@ -49,3 +49,8 @@ def custom_500(request):
 def ratelimit_exceeded(request, exception):
     """Rate limit exceeded view."""
     return render(request, "errors/ratelimit.html", status=429)
+
+
+def dashboard(request):
+    """Main dashboard view."""
+    return render(request, "dashboard.html")
