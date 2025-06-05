@@ -151,3 +151,6 @@ npm run typecheck
 - `pytest.ini` - Test configuration
 - `.pre-commit-config.yaml` - Code quality hooks
 - `apps/core/security/` - PII encryption and masking utilities
+
+## Development Notes
+- Use uv (not standard pip) to manage python packages in this project

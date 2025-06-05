@@ -96,7 +96,7 @@ This document serves as the master task list for the Personal Finance Dashboard 
 
 - [ ] **1.3.2** User Profile model
   - [ ] Write tests for UserProfile model
-  - [ ] Implement UserProfile with encrypted PII fields
+  - [ ] Implement UserProfile with encrypted PII fields`
   - [ ] Add financial data fields (monthly_income, goals)
   - [ ] Test profile creation and updates
 

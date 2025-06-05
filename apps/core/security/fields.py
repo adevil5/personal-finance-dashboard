@@ -286,8 +286,32 @@ class EncryptedPhoneField(BaseEncryptedField, models.CharField):
         # Remove all non-digit characters for storage
         import re
 
-        phone_str = re.sub(r"[^\d+]", "", str(value))
+        phone_str = re.sub(r"[^\d]", "", str(value))
         return phone_str if phone_str else None
+
+    def get_prep_value(self, value: Any) -> Optional[str]:
+        """Prepare value for database storage by normalizing and encrypting it."""
+        if value is None:
+            return None
+
+        # Normalize the phone number first
+        normalized_value = self.to_python(value)
+        return self._encrypt_value(normalized_value)
+
+    def from_db_value(self, value: Any, expression, connection) -> Any:
+        """Convert value from database to Python, ensuring normalization."""
+        if value is None:
+            return None
+        decrypted = self._decrypt_value(value)
+        return self.to_python(decrypted)
+
+    def pre_save(self, model_instance, add):
+        """Normalize the phone number before saving."""
+        value = getattr(model_instance, self.attname)
+        if value is not None:
+            normalized = self.to_python(value)
+            setattr(model_instance, self.attname, normalized)
+        return super().pre_save(model_instance, add)
 
     def validate(self, value: Any, model_instance) -> None:
         """Validate phone number format."""
