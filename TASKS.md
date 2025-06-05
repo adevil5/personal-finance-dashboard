@@ -94,11 +94,11 @@ This document serves as the master task list for the Personal Finance Dashboard 
   - [x] Add timezone and currency preferences
   - [x] Test user creation and field encryption
 
-- [ ] **1.3.2** User Profile model
-  - [ ] Write tests for UserProfile model
-  - [ ] Implement UserProfile with encrypted PII fields`
-  - [ ] Add financial data fields (monthly_income, goals)
-  - [ ] Test profile creation and updates
+- [x] **1.3.2** User Profile model
+  - [x] Write tests for UserProfile model
+  - [x] Implement UserProfile with encrypted PII fields
+  - [x] Add financial data fields (monthly_income, goals)
+  - [x] Test profile creation and updates
 
 - [ ] **1.3.3** Authentication system
   - [ ] Write tests for authentication views
