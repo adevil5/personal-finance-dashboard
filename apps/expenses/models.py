@@ -238,6 +238,13 @@ class Transaction(models.Model):
         help_text="Transaction amount (encrypted)",
     )
 
+    amount_index = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        help_text="Transaction amount for filtering/sorting (non-encrypted)",
+    )
+
     category = models.ForeignKey(
         Category,
         on_delete=models.SET_NULL,
@@ -348,6 +355,9 @@ class Transaction(models.Model):
             models.Index(fields=["user", "transaction_type", "is_active"]),
             models.Index(fields=["user", "date"]),
             models.Index(fields=["user", "category", "is_active"]),
+            models.Index(
+                fields=["user", "amount_index"]
+            ),  # For amount filtering/sorting
             models.Index(fields=["is_recurring", "next_occurrence"]),
             models.Index(fields=["user", "is_recurring"]),
             models.Index(fields=["parent_transaction"]),
@@ -410,6 +420,10 @@ class Transaction(models.Model):
         """Save the transaction with validation."""
         self.full_clean()
 
+        # Sync amount_index with encrypted amount
+        if self.amount is not None:
+            self.amount_index = self.amount
+
         # Calculate next_occurrence for recurring transactions
         if self.is_recurring and not self.next_occurrence:
             self.next_occurrence = self.calculate_next_occurrence()
@@ -463,6 +477,7 @@ class Transaction(models.Model):
             user=self.user,
             transaction_type=self.transaction_type,
             amount=self.amount,
+            amount_index=self.amount,  # Sync amount_index
             category=self.category,
             description=self.description,
             notes=self.notes,

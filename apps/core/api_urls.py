@@ -1,5 +1,15 @@
-from django.urls import include, path  # noqa: F401
+from rest_framework import routers
+
+from django.urls import include, path
+
+from apps.expenses.views import TransactionViewSet
+
+app_name = "api"
+
+# Create router for API endpoints
+router = routers.DefaultRouter()
+router.register(r"transactions", TransactionViewSet, basename="transaction")
 
 urlpatterns = [
-    # API URLs will be added here
+    path("", include(router.urls)),
 ]

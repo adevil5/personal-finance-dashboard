@@ -150,13 +150,13 @@ This document serves as the master task list for the Personal Finance Dashboard 
 
 ### 2.2 Transaction API
 
-- [ ] **2.2.1** Transaction ViewSet
-  - [ ] Write tests for all CRUD operations
-  - [ ] Implement TransactionViewSet with DRF
-  - [ ] Add proper permissions (user can only access own data)
-  - [ ] Implement filtering by date, category, amount
-  - [ ] Add pagination and sorting
-  - [ ] Test API endpoints thoroughly
+- [x] **2.2.1** Transaction ViewSet
+  - [x] Write tests for all CRUD operations
+  - [x] Implement TransactionViewSet with DRF
+  - [x] Add proper permissions (user can only access own data)
+  - [x] Implement filtering by date, category, amount
+  - [x] Add pagination and sorting
+  - [x] Test API endpoints thoroughly
 
 - [ ] **2.2.2** Transaction serializers
   - [ ] Write tests for serialization/deserialization
