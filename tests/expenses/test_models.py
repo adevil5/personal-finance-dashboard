@@ -2,17 +2,20 @@
 Tests for expense models.
 """
 
+from decimal import Decimal
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db.models.signals import post_save
 from django.test import TestCase
+from django.utils import timezone
 
 from apps.expenses.default_categories import DEFAULT_CATEGORIES
-from apps.expenses.models import Category
+from apps.expenses.models import Category, Transaction
 from apps.expenses.signals import create_default_categories_for_new_user
-from tests.factories import UserFactory
+from tests.factories import CategoryFactory, UserFactory
 
 User = get_user_model()
 
@@ -389,3 +392,531 @@ class DefaultCategoriesTestCase(TestCase):
 
         # Should be called once for the new user
         mock_create_defaults.assert_called_once()
+
+
+class TransactionModelTestCase(TestCase):
+    """Test case for Transaction model."""
+
+    def setUp(self):
+        """Set up test data."""
+        self.user1 = UserFactory()
+        self.user2 = UserFactory()
+
+        # Create categories for testing
+        self.category1 = CategoryFactory(user=self.user1, name="Groceries")
+        self.category2 = CategoryFactory(user=self.user1, name="Transportation")
+        self.category_user2 = CategoryFactory(user=self.user2, name="User2 Category")
+
+    def test_transaction_creation_expense(self):
+        """Test basic expense transaction creation."""
+        transaction = Transaction.objects.create(
+            user=self.user1,
+            transaction_type=Transaction.EXPENSE,
+            amount=Decimal("25.50"),
+            category=self.category1,
+            description="Grocery shopping",
+            date=timezone.now().date(),
+            merchant="Local Store",
+        )
+
+        self.assertEqual(transaction.user, self.user1)
+        self.assertEqual(transaction.transaction_type, Transaction.EXPENSE)
+        self.assertEqual(transaction.amount, Decimal("25.50"))
+        self.assertEqual(transaction.category, self.category1)
+        self.assertEqual(transaction.description, "Grocery shopping")
+        self.assertEqual(transaction.merchant, "Local Store")
+        self.assertIsNotNone(transaction.date)
+        self.assertTrue(transaction.is_active)
+        self.assertIsNotNone(transaction.created_at)
+        self.assertIsNotNone(transaction.updated_at)
+
+    def test_transaction_creation_income(self):
+        """Test basic income transaction creation."""
+        transaction = Transaction.objects.create(
+            user=self.user1,
+            transaction_type=Transaction.INCOME,
+            amount=Decimal("1500.00"),
+            description="Salary payment",
+            date=timezone.now().date(),
+        )
+
+        self.assertEqual(transaction.transaction_type, Transaction.INCOME)
+        self.assertEqual(transaction.amount, Decimal("1500.00"))
+        self.assertIsNone(transaction.category)  # Income doesn't require category
+
+    def test_transaction_creation_transfer(self):
+        """Test basic transfer transaction creation."""
+        transaction = Transaction.objects.create(
+            user=self.user1,
+            transaction_type=Transaction.TRANSFER,
+            amount=Decimal("100.00"),
+            description="Savings transfer",
+            date=timezone.now().date(),
+        )
+
+        self.assertEqual(transaction.transaction_type, Transaction.TRANSFER)
+        self.assertEqual(transaction.amount, Decimal("100.00"))
+
+    def test_transaction_str_representation(self):
+        """Test string representation of transaction."""
+        transaction = Transaction.objects.create(
+            user=self.user1,
+            transaction_type=Transaction.EXPENSE,
+            amount=Decimal("50.00"),
+            category=self.category1,
+            description="Test transaction",
+            date=timezone.now().date(),
+        )
+
+        expected_str = (
+            f"{transaction.get_transaction_type_display()} - $50.00 - Test transaction"
+        )
+        self.assertEqual(str(transaction), expected_str)
+
+    def test_encrypted_amount_field(self):
+        """Test that amount field is encrypted in database."""
+        transaction = Transaction.objects.create(
+            user=self.user1,
+            transaction_type=Transaction.EXPENSE,
+            amount=Decimal("123.45"),
+            category=self.category1,
+            description="Test encryption",
+            date=timezone.now().date(),
+        )
+
+        # Verify the amount is correctly stored and retrieved
+        self.assertEqual(transaction.amount, Decimal("123.45"))
+
+        # Verify that the raw database value is encrypted (not the actual decimal)
+        from django.db import connection
+
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT amount FROM expenses_transaction WHERE id = %s",
+                [transaction.id],
+            )
+            raw_value = cursor.fetchone()[0]
+            self.assertNotEqual(raw_value, "123.45")
+            self.assertIsInstance(raw_value, str)  # Encrypted values are strings
+
+    def test_encrypted_notes_field(self):
+        """Test that notes field is encrypted in database."""
+        notes_text = "Sensitive information about transaction"
+        transaction = Transaction.objects.create(
+            user=self.user1,
+            transaction_type=Transaction.EXPENSE,
+            amount=Decimal("50.00"),
+            category=self.category1,
+            description="Test transaction",
+            notes=notes_text,
+            date=timezone.now().date(),
+        )
+
+        # Verify the notes are correctly stored and retrieved
+        self.assertEqual(transaction.notes, notes_text)
+
+        # Verify that the raw database value is encrypted
+        from django.db import connection
+
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT notes FROM expenses_transaction WHERE id = %s", [transaction.id]
+            )
+            raw_value = cursor.fetchone()[0]
+            self.assertNotEqual(raw_value, notes_text)
+            self.assertIsInstance(raw_value, str)
+
+    def test_encrypted_merchant_field(self):
+        """Test that merchant field is encrypted in database."""
+        merchant_name = "Sensitive Merchant Name"
+        transaction = Transaction.objects.create(
+            user=self.user1,
+            transaction_type=Transaction.EXPENSE,
+            amount=Decimal("75.00"),
+            category=self.category1,
+            description="Test transaction",
+            merchant=merchant_name,
+            date=timezone.now().date(),
+        )
+
+        # Verify the merchant is correctly stored and retrieved
+        self.assertEqual(transaction.merchant, merchant_name)
+
+        # Verify that the raw database value is encrypted
+        from django.db import connection
+
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT merchant FROM expenses_transaction WHERE id = %s",
+                [transaction.id],
+            )
+            raw_value = cursor.fetchone()[0]
+            self.assertNotEqual(raw_value, merchant_name)
+            self.assertIsInstance(raw_value, str)
+
+    def test_user_data_isolation(self):
+        """Test that users can only access their own transactions."""
+        transaction1 = Transaction.objects.create(
+            user=self.user1,
+            transaction_type=Transaction.EXPENSE,
+            amount=Decimal("100.00"),
+            category=self.category1,
+            description="User 1 transaction",
+            date=timezone.now().date(),
+        )
+
+        transaction2 = Transaction.objects.create(
+            user=self.user2,
+            transaction_type=Transaction.EXPENSE,
+            amount=Decimal("200.00"),
+            category=self.category_user2,
+            description="User 2 transaction",
+            date=timezone.now().date(),
+        )
+
+        # Verify user1 transactions
+        user1_transactions = Transaction.objects.filter(user=self.user1)
+        self.assertIn(transaction1, user1_transactions)
+        self.assertNotIn(transaction2, user1_transactions)
+
+        # Verify user2 transactions
+        user2_transactions = Transaction.objects.filter(user=self.user2)
+        self.assertIn(transaction2, user2_transactions)
+        self.assertNotIn(transaction1, user2_transactions)
+
+    def test_amount_validation_positive(self):
+        """Test that amount must be positive for all transaction types."""
+        with self.assertRaises(ValidationError):
+            transaction = Transaction(
+                user=self.user1,
+                transaction_type=Transaction.EXPENSE,
+                amount=Decimal("-50.00"),
+                category=self.category1,
+                description="Invalid negative amount",
+                date=timezone.now().date(),
+            )
+            transaction.full_clean()
+
+    def test_amount_validation_zero(self):
+        """Test that amount cannot be zero."""
+        with self.assertRaises(ValidationError):
+            transaction = Transaction(
+                user=self.user1,
+                transaction_type=Transaction.EXPENSE,
+                amount=Decimal("0.00"),
+                category=self.category1,
+                description="Invalid zero amount",
+                date=timezone.now().date(),
+            )
+            transaction.full_clean()
+
+    def test_expense_requires_category(self):
+        """Test that expense transactions require a category."""
+        with self.assertRaises(ValidationError):
+            transaction = Transaction(
+                user=self.user1,
+                transaction_type=Transaction.EXPENSE,
+                amount=Decimal("50.00"),
+                description="Expense without category",
+                date=timezone.now().date(),
+            )
+            transaction.full_clean()
+
+    def test_income_category_optional(self):
+        """Test that income transactions can have optional category."""
+        # Income without category should be valid
+        transaction = Transaction(
+            user=self.user1,
+            transaction_type=Transaction.INCOME,
+            amount=Decimal("1000.00"),
+            description="Salary",
+            date=timezone.now().date(),
+        )
+        transaction.full_clean()  # Should not raise ValidationError
+
+        # Income with category should also be valid
+        transaction_with_category = Transaction(
+            user=self.user1,
+            transaction_type=Transaction.INCOME,
+            amount=Decimal("500.00"),
+            category=self.category1,
+            description="Freelance income",
+            date=timezone.now().date(),
+        )
+        transaction_with_category.full_clean()  # Should not raise ValidationError
+
+    def test_transfer_category_optional(self):
+        """Test that transfer transactions can have optional category."""
+        transaction = Transaction(
+            user=self.user1,
+            transaction_type=Transaction.TRANSFER,
+            amount=Decimal("200.00"),
+            description="Account transfer",
+            date=timezone.now().date(),
+        )
+        transaction.full_clean()  # Should not raise ValidationError
+
+    def test_cross_user_category_restriction(self):
+        """Test that users cannot assign categories from other users."""
+        with self.assertRaises(ValidationError):
+            transaction = Transaction(
+                user=self.user1,
+                transaction_type=Transaction.EXPENSE,
+                amount=Decimal("50.00"),
+                category=self.category_user2,  # Category belongs to user2
+                description="Invalid category assignment",
+                date=timezone.now().date(),
+            )
+            transaction.full_clean()
+
+    def test_date_validation_future_date(self):
+        """Test validation for future dates."""
+        from datetime import date, timedelta
+
+        future_date = date.today() + timedelta(days=1)
+
+        with self.assertRaises(ValidationError):
+            transaction = Transaction(
+                user=self.user1,
+                transaction_type=Transaction.EXPENSE,
+                amount=Decimal("50.00"),
+                category=self.category1,
+                description="Future transaction",
+                date=future_date,
+            )
+            transaction.full_clean()
+
+    def test_date_validation_valid_dates(self):
+        """Test validation for valid dates (today and past)."""
+        from datetime import date, timedelta
+
+        # Today should be valid
+        today_transaction = Transaction(
+            user=self.user1,
+            transaction_type=Transaction.EXPENSE,
+            amount=Decimal("50.00"),
+            category=self.category1,
+            description="Today transaction",
+            date=date.today(),
+        )
+        today_transaction.full_clean()  # Should not raise ValidationError
+
+        # Past date should be valid
+        past_date = date.today() - timedelta(days=30)
+        past_transaction = Transaction(
+            user=self.user1,
+            transaction_type=Transaction.EXPENSE,
+            amount=Decimal("50.00"),
+            category=self.category1,
+            description="Past transaction",
+            date=past_date,
+        )
+        past_transaction.full_clean()  # Should not raise ValidationError
+
+    def test_receipt_file_upload(self):
+        """Test receipt file handling."""
+        # Create a simple test file
+        test_file = SimpleUploadedFile(
+            "receipt.txt", b"Test receipt content", content_type="text/plain"
+        )
+
+        transaction = Transaction.objects.create(
+            user=self.user1,
+            transaction_type=Transaction.EXPENSE,
+            amount=Decimal("50.00"),
+            category=self.category1,
+            description="Transaction with receipt",
+            date=timezone.now().date(),
+            receipt=test_file,
+        )
+
+        self.assertIsNotNone(transaction.receipt)
+        # The upload_to function modifies the path, so just check that the file
+        # exists and has some content based on our upload_to pattern:
+        # receipts/{user_id}/{filename}. Django may add random suffixes to
+        # avoid filename conflicts
+        self.assertTrue(transaction.receipt.name)
+        self.assertIn(str(self.user1.id), transaction.receipt.name)
+        self.assertIn("receipt", transaction.receipt.name)
+        self.assertTrue(transaction.receipt.name.endswith(".txt"))
+
+    def test_receipt_file_optional(self):
+        """Test that receipt file is optional."""
+        transaction = Transaction.objects.create(
+            user=self.user1,
+            transaction_type=Transaction.EXPENSE,
+            amount=Decimal("50.00"),
+            category=self.category1,
+            description="Transaction without receipt",
+            date=timezone.now().date(),
+        )
+
+        self.assertFalse(transaction.receipt)  # Should be falsy (empty)
+
+    def test_transaction_ordering(self):
+        """Test that transactions are ordered by date (newest first) by default."""
+        from datetime import date, timedelta
+
+        # Create transactions with different dates
+        old_transaction = Transaction.objects.create(
+            user=self.user1,
+            transaction_type=Transaction.EXPENSE,
+            amount=Decimal("100.00"),
+            category=self.category1,
+            description="Old transaction",
+            date=date.today() - timedelta(days=2),
+        )
+
+        new_transaction = Transaction.objects.create(
+            user=self.user1,
+            transaction_type=Transaction.EXPENSE,
+            amount=Decimal("200.00"),
+            category=self.category1,
+            description="New transaction",
+            date=date.today(),
+        )
+
+        middle_transaction = Transaction.objects.create(
+            user=self.user1,
+            transaction_type=Transaction.EXPENSE,
+            amount=Decimal("150.00"),
+            category=self.category1,
+            description="Middle transaction",
+            date=date.today() - timedelta(days=1),
+        )
+
+        # Get all transactions for user1
+        transactions = list(Transaction.objects.filter(user=self.user1))
+
+        # Should be ordered by date descending (newest first)
+        self.assertEqual(transactions[0], new_transaction)
+        self.assertEqual(transactions[1], middle_transaction)
+        self.assertEqual(transactions[2], old_transaction)
+
+    def test_soft_delete_functionality(self):
+        """Test that transactions can be soft deleted."""
+        transaction = Transaction.objects.create(
+            user=self.user1,
+            transaction_type=Transaction.EXPENSE,
+            amount=Decimal("50.00"),
+            category=self.category1,
+            description="To be deleted",
+            date=timezone.now().date(),
+        )
+
+        # Soft delete
+        transaction.is_active = False
+        transaction.save()
+
+        # Should still exist in database but be inactive
+        self.assertFalse(transaction.is_active)
+
+        # Test that active transactions don't include soft deleted ones
+        active_transactions = Transaction.objects.filter(
+            user=self.user1, is_active=True
+        )
+        self.assertNotIn(transaction, active_transactions)
+
+    def test_transaction_type_choices(self):
+        """Test that transaction type choices are correctly defined."""
+        # Test all valid transaction types can be created
+        expense = Transaction.objects.create(
+            user=self.user1,
+            transaction_type=Transaction.EXPENSE,
+            amount=Decimal("50.00"),
+            category=self.category1,
+            description="Expense",
+            date=timezone.now().date(),
+        )
+
+        income = Transaction.objects.create(
+            user=self.user1,
+            transaction_type=Transaction.INCOME,
+            amount=Decimal("1000.00"),
+            description="Income",
+            date=timezone.now().date(),
+        )
+
+        transfer = Transaction.objects.create(
+            user=self.user1,
+            transaction_type=Transaction.TRANSFER,
+            amount=Decimal("200.00"),
+            description="Transfer",
+            date=timezone.now().date(),
+        )
+
+        self.assertEqual(expense.get_transaction_type_display(), "Expense")
+        self.assertEqual(income.get_transaction_type_display(), "Income")
+        self.assertEqual(transfer.get_transaction_type_display(), "Transfer")
+
+    def test_transaction_meta_properties(self):
+        """Test transaction model meta properties."""
+        Transaction.objects.create(
+            user=self.user1,
+            transaction_type=Transaction.EXPENSE,
+            amount=Decimal("50.00"),
+            category=self.category1,
+            description="Test meta",
+            date=timezone.now().date(),
+        )
+
+        meta = Transaction._meta
+        self.assertEqual(meta.db_table, "expenses_transaction")
+        self.assertEqual(meta.verbose_name, "Transaction")
+        self.assertEqual(meta.verbose_name_plural, "Transactions")
+
+    def test_amount_decimal_precision(self):
+        """Test that amount field handles decimal precision correctly."""
+        # Test valid decimal amounts
+        valid_amounts = [
+            Decimal("0.01"),  # Minimum amount
+            Decimal("9999.99"),  # Large amount
+            Decimal("123.45"),  # Exactly 2 decimal places
+        ]
+
+        for amount in valid_amounts:
+            transaction = Transaction.objects.create(
+                user=self.user1,
+                transaction_type=Transaction.EXPENSE,
+                amount=amount,
+                category=self.category1,
+                description=f"Test amount {amount}",
+                date=timezone.now().date(),
+            )
+
+            # Verify amount is stored correctly
+            saved_transaction = Transaction.objects.get(id=transaction.id)
+            self.assertEqual(saved_transaction.amount, amount)
+
+        # Test invalid decimal amount (too many decimal places)
+        with self.assertRaises(ValidationError):
+            transaction = Transaction(
+                user=self.user1,
+                transaction_type=Transaction.EXPENSE,
+                amount=Decimal("123.456"),  # 3 decimal places should fail
+                category=self.category1,
+                description="Invalid precision",
+                date=timezone.now().date(),
+            )
+            transaction.full_clean()
+
+    def test_transaction_unicode_handling(self):
+        """Test that transaction handles unicode characters in text fields."""
+        unicode_text = "Test with émojis 🛒 and special characters: café, naïve, résumé"
+
+        transaction = Transaction.objects.create(
+            user=self.user1,
+            transaction_type=Transaction.EXPENSE,
+            amount=Decimal("50.00"),
+            category=self.category1,
+            description=unicode_text,
+            notes=unicode_text,
+            merchant=unicode_text,
+            date=timezone.now().date(),
+        )
+
+        # Verify unicode text is stored and retrieved correctly
+        saved_transaction = Transaction.objects.get(id=transaction.id)
+        self.assertEqual(saved_transaction.description, unicode_text)
+        self.assertEqual(saved_transaction.notes, unicode_text)
+        self.assertEqual(saved_transaction.merchant, unicode_text)

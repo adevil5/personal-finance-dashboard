@@ -1,8 +1,16 @@
 import re
+from datetime import date
+from decimal import Decimal
 
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.db import models
+
+from apps.core.security.fields import (
+    EncryptedCharField,
+    EncryptedDecimalField,
+    EncryptedTextField,
+)
 
 User = get_user_model()
 
@@ -171,3 +179,146 @@ class Category(models.Model):
                     color=child_data["color"],
                     icon=child_data["icon"],
                 )
+
+
+def upload_receipt_to(instance, filename):
+    """Generate upload path for receipt files."""
+    return f"receipts/{instance.user.id}/{filename}"
+
+
+class Transaction(models.Model):
+    """
+    Transaction model for tracking financial transactions.
+
+    Supports expense, income, and transfer transaction types with encrypted PII fields
+    for secure storage of financial information.
+    """
+
+    # Transaction type choices
+    EXPENSE = "expense"
+    INCOME = "income"
+    TRANSFER = "transfer"
+
+    TRANSACTION_TYPE_CHOICES = [
+        (EXPENSE, "Expense"),
+        (INCOME, "Income"),
+        (TRANSFER, "Transfer"),
+    ]
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="transactions",
+        help_text="User this transaction belongs to",
+    )
+
+    transaction_type = models.CharField(
+        max_length=10,
+        choices=TRANSACTION_TYPE_CHOICES,
+        help_text="Type of transaction",
+    )
+
+    amount = EncryptedDecimalField(
+        max_digits=10,
+        decimal_places=2,
+        help_text="Transaction amount (encrypted)",
+    )
+
+    category = models.ForeignKey(
+        Category,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="transactions",
+        help_text="Category for this transaction (required for expenses)",
+    )
+
+    description = models.CharField(
+        max_length=255,
+        help_text="Transaction description",
+    )
+
+    notes = EncryptedTextField(
+        blank=True,
+        null=True,
+        help_text="Additional notes about the transaction (encrypted)",
+    )
+
+    merchant = EncryptedCharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="Merchant or payee name (encrypted)",
+    )
+
+    date = models.DateField(
+        help_text="Transaction date",
+    )
+
+    receipt = models.FileField(
+        upload_to=upload_receipt_to,
+        blank=True,
+        null=True,
+        help_text="Receipt or supporting document",
+    )
+
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Whether this transaction is active (soft delete)",
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        help_text="When this transaction was created",
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        help_text="When this transaction was last updated",
+    )
+
+    class Meta:
+        db_table = "expenses_transaction"
+        verbose_name = "Transaction"
+        verbose_name_plural = "Transactions"
+        ordering = ["-date", "-created_at"]  # Newest first
+        indexes = [
+            models.Index(fields=["user", "is_active"]),
+            models.Index(fields=["user", "transaction_type", "is_active"]),
+            models.Index(fields=["user", "date"]),
+            models.Index(fields=["user", "category", "is_active"]),
+        ]
+
+    def __str__(self):
+        """Return string representation of the transaction."""
+        return (
+            f"{self.get_transaction_type_display()} - "
+            f"${self.amount} - {self.description}"
+        )
+
+    def clean(self):
+        """Validate the transaction."""
+        super().clean()
+
+        # Validate amount is positive
+        if self.amount is not None and self.amount <= Decimal("0"):
+            raise ValidationError("Amount must be greater than zero.")
+
+        # Validate date is not in the future
+        if self.date and self.date > date.today():
+            raise ValidationError("Transaction date cannot be in the future.")
+
+        # Validate category assignment
+        if self.category:
+            # Ensure category belongs to same user
+            if self.category.user != self.user:
+                raise ValidationError("Category must belong to the same user.")
+
+        # Validate expense transactions require a category
+        if self.transaction_type == self.EXPENSE and not self.category:
+            raise ValidationError("Expense transactions must have a category.")
+
+    def save(self, *args, **kwargs):
+        """Save the transaction with validation."""
+        self.full_clean()
+        super().save(*args, **kwargs)

@@ -197,6 +197,15 @@ class EncryptedDecimalField(BaseEncryptedField, models.CharField):
 
         return self._encrypt_value(decimal_str)
 
+    def run_validators(self, value: Any) -> None:
+        """Run only our custom validators, not CharField validators."""
+        if value is None:
+            return
+
+        # Convert to decimal and run decimal validation only
+        decimal_value = self.to_python(value)
+        self.validate(decimal_value, None)
+
     def validate(self, value: Any, model_instance) -> None:
         """Validate decimal value."""
         if value is None:

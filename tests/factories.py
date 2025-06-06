@@ -2,10 +2,13 @@
 Factory classes for creating test data.
 """
 
+from decimal import Decimal
+
 import factory
 from factory.django import DjangoModelFactory
 
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 
 User = get_user_model()
 
@@ -44,4 +47,20 @@ class CategoryFactory(DjangoModelFactory):
     user = factory.SubFactory(UserFactory)
     color = factory.Faker("hex_color")
     icon = factory.Faker("word")
+    is_active = True
+
+
+class TransactionFactory(DjangoModelFactory):
+    """Factory for creating Transaction instances."""
+
+    class Meta:
+        model = "expenses.Transaction"
+
+    user = factory.SubFactory(UserFactory)
+    transaction_type = "expense"  # Default to expense
+    amount = factory.LazyFunction(lambda: Decimal("25.50"))
+    category = factory.SubFactory(CategoryFactory)
+    description = factory.Faker("sentence", nb_words=4)
+    date = factory.LazyFunction(lambda: timezone.now().date())
+    merchant = factory.Faker("company")
     is_active = True

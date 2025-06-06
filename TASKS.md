@@ -126,13 +126,13 @@ This document serves as the master task list for the Personal Finance Dashboard 
 
 ### 2.1 Transaction Model
 
-- [ ] **2.1.1** Core transaction model
-  - [ ] Write comprehensive tests for Transaction model
-  - [ ] Implement Transaction with encrypted amount field
-  - [ ] Add encrypted notes and merchant fields
-  - [ ] Implement transaction types (expense, income, transfer)
-  - [ ] Add receipt file handling
-  - [ ] Test all transaction operations
+- [x] **2.1.1** Core transaction model
+  - [x] Write comprehensive tests for Transaction model
+  - [x] Implement Transaction with encrypted amount field
+  - [x] Add encrypted notes and merchant fields
+  - [x] Implement transaction types (expense, income, transfer)
+  - [x] Add receipt file handling
+  - [x] Test all transaction operations
 
 - [ ] **2.1.2** Transaction validation
   - [ ] Write tests for validation rules
