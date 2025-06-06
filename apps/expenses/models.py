@@ -191,7 +191,8 @@ class Transaction(models.Model):
     Transaction model for tracking financial transactions.
 
     Supports expense, income, and transfer transaction types with encrypted PII fields
-    for secure storage of financial information.
+    for secure storage of financial information. Also supports recurring transactions
+    with various frequency options.
     """
 
     # Transaction type choices
@@ -203,6 +204,19 @@ class Transaction(models.Model):
         (EXPENSE, "Expense"),
         (INCOME, "Income"),
         (TRANSFER, "Transfer"),
+    ]
+
+    # Recurring frequency choices
+    DAILY = "daily"
+    WEEKLY = "weekly"
+    MONTHLY = "monthly"
+    YEARLY = "yearly"
+
+    RECURRING_FREQUENCY_CHOICES = [
+        (DAILY, "Daily"),
+        (WEEKLY, "Weekly"),
+        (MONTHLY, "Monthly"),
+        (YEARLY, "Yearly"),
     ]
 
     user = models.ForeignKey(
@@ -262,6 +276,53 @@ class Transaction(models.Model):
         help_text="Receipt or supporting document",
     )
 
+    # Recurring transaction fields
+    is_recurring = models.BooleanField(
+        default=False,
+        help_text="Whether this transaction repeats automatically",
+    )
+
+    recurring_frequency = models.CharField(
+        max_length=10,
+        choices=RECURRING_FREQUENCY_CHOICES,
+        blank=True,
+        null=True,
+        help_text="How often the transaction repeats",
+    )
+
+    recurring_interval = models.PositiveIntegerField(
+        blank=True,
+        null=True,
+        help_text="Interval for recurring frequency (e.g., every 2 weeks)",
+    )
+
+    recurring_start_date = models.DateField(
+        blank=True,
+        null=True,
+        help_text="When the recurring pattern starts",
+    )
+
+    recurring_end_date = models.DateField(
+        blank=True,
+        null=True,
+        help_text="When the recurring pattern ends (optional)",
+    )
+
+    next_occurrence = models.DateField(
+        blank=True,
+        null=True,
+        help_text="When the next transaction should be generated",
+    )
+
+    parent_transaction = models.ForeignKey(
+        "self",
+        on_delete=models.CASCADE,
+        blank=True,
+        null=True,
+        related_name="recurring_children",
+        help_text="Parent transaction for recurring series",
+    )
+
     is_active = models.BooleanField(
         default=True,
         help_text="Whether this transaction is active (soft delete)",
@@ -287,6 +348,9 @@ class Transaction(models.Model):
             models.Index(fields=["user", "transaction_type", "is_active"]),
             models.Index(fields=["user", "date"]),
             models.Index(fields=["user", "category", "is_active"]),
+            models.Index(fields=["is_recurring", "next_occurrence"]),
+            models.Index(fields=["user", "is_recurring"]),
+            models.Index(fields=["parent_transaction"]),
         ]
 
     def __str__(self):
@@ -304,8 +368,13 @@ class Transaction(models.Model):
         if self.amount is not None and self.amount <= Decimal("0"):
             raise ValidationError("Amount must be greater than zero.")
 
-        # Validate date is not in the future
-        if self.date and self.date > date.today():
+        # Validate date is not in the future (except for generated recurring
+        # transactions)
+        if (
+            self.date
+            and self.date > date.today()
+            and not (self.parent_transaction and not self.is_recurring)
+        ):
             raise ValidationError("Transaction date cannot be in the future.")
 
         # Validate category assignment
@@ -318,7 +387,131 @@ class Transaction(models.Model):
         if self.transaction_type == self.EXPENSE and not self.category:
             raise ValidationError("Expense transactions must have a category.")
 
+        # Validate recurring transaction fields
+        if self.is_recurring:
+            if not self.recurring_frequency:
+                raise ValidationError("Recurring transactions must have a frequency.")
+
+            if not self.recurring_interval or self.recurring_interval <= 0:
+                raise ValidationError(
+                    "Recurring transactions must have a positive interval."
+                )
+
+            if not self.recurring_start_date:
+                raise ValidationError("Recurring transactions must have a start date.")
+
+            if (
+                self.recurring_end_date
+                and self.recurring_end_date <= self.recurring_start_date
+            ):
+                raise ValidationError("Recurring end date must be after start date.")
+
     def save(self, *args, **kwargs):
         """Save the transaction with validation."""
         self.full_clean()
+
+        # Calculate next_occurrence for recurring transactions
+        if self.is_recurring and not self.next_occurrence:
+            self.next_occurrence = self.calculate_next_occurrence()
+
+        # Clear next_occurrence for non-recurring transactions
+        if not self.is_recurring:
+            self.next_occurrence = None
+
         super().save(*args, **kwargs)
+
+    def calculate_next_occurrence(self):
+        """Calculate the next occurrence date for recurring transactions."""
+        if not self.is_recurring or not self.recurring_start_date:
+            return None
+
+        from datetime import timedelta
+
+        from dateutil.relativedelta import relativedelta
+
+        base_date = self.recurring_start_date
+        interval = self.recurring_interval or 1
+
+        if self.recurring_frequency == self.DAILY:
+            next_date = base_date + timedelta(days=interval)
+        elif self.recurring_frequency == self.WEEKLY:
+            next_date = base_date + timedelta(weeks=interval)
+        elif self.recurring_frequency == self.MONTHLY:
+            next_date = base_date + relativedelta(months=interval)
+        elif self.recurring_frequency == self.YEARLY:
+            next_date = base_date + relativedelta(years=interval)
+        else:
+            return None
+
+        # Handle end date
+        if self.recurring_end_date and next_date > self.recurring_end_date:
+            return None
+
+        return next_date
+
+    def generate_next_transaction(self):
+        """Generate the next transaction in the recurring series."""
+        if not self.is_recurring or not self.next_occurrence:
+            return None
+
+        from datetime import timedelta
+
+        from dateutil.relativedelta import relativedelta
+
+        # Create new transaction based on this one
+        new_transaction = Transaction(
+            user=self.user,
+            transaction_type=self.transaction_type,
+            amount=self.amount,
+            category=self.category,
+            description=self.description,
+            notes=self.notes,
+            merchant=self.merchant,
+            date=self.next_occurrence,
+            is_recurring=False,  # Generated transactions are not recurring
+            parent_transaction=self,
+        )
+
+        # Copy receipt if present (same file reference)
+        if self.receipt:
+            new_transaction.receipt = self.receipt
+
+        # Save the new transaction
+        new_transaction.save()
+
+        # Update next occurrence for this recurring transaction
+        interval = self.recurring_interval or 1
+
+        if self.recurring_frequency == self.DAILY:
+            next_date = self.next_occurrence + timedelta(days=interval)
+        elif self.recurring_frequency == self.WEEKLY:
+            next_date = self.next_occurrence + timedelta(weeks=interval)
+        elif self.recurring_frequency == self.MONTHLY:
+            next_date = self.next_occurrence + relativedelta(months=interval)
+        elif self.recurring_frequency == self.YEARLY:
+            next_date = self.next_occurrence + relativedelta(years=interval)
+        else:
+            next_date = None
+
+        # Check if we've reached the end date
+        if (
+            self.recurring_end_date
+            and next_date
+            and next_date > self.recurring_end_date
+        ):
+            self.next_occurrence = None
+        else:
+            self.next_occurrence = next_date
+
+        # Save updated next occurrence (use update to avoid triggering save logic)
+        Transaction.objects.filter(id=self.id).update(
+            next_occurrence=self.next_occurrence
+        )
+
+        return new_transaction
+
+    def stop_recurring(self):
+        """Stop this recurring transaction."""
+        self.is_recurring = False
+        self.next_occurrence = None
+        self.save()

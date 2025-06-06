@@ -1257,3 +1257,782 @@ class TransactionValidationEdgeCasesTestCase(TestCase):
         # Verify encrypted data is still correctly retrieved
         self.assertEqual(saved_transaction.notes, sensitive_notes)
         self.assertEqual(saved_transaction.merchant, sensitive_merchant)
+
+
+class RecurringTransactionTestCase(TestCase):
+    """Test case for recurring transaction functionality (Task 2.1.3)."""
+
+    def setUp(self):
+        """Set up test data."""
+        self.user1 = UserFactory()
+        self.user2 = UserFactory()
+        self.category1 = CategoryFactory(user=self.user1, name="Groceries")
+        self.category2 = CategoryFactory(user=self.user1, name="Rent")
+
+    def test_recurring_transaction_creation_basic(self):
+        """Test basic recurring transaction creation."""
+        from datetime import date
+
+        start_date = date.today()
+        transaction = Transaction.objects.create(
+            user=self.user1,
+            transaction_type=Transaction.EXPENSE,
+            amount=Decimal("50.00"),
+            category=self.category1,
+            description="Weekly groceries",
+            date=start_date,
+            is_recurring=True,
+            recurring_frequency=Transaction.WEEKLY,
+            recurring_interval=1,
+            recurring_start_date=start_date,
+        )
+
+        self.assertTrue(transaction.is_recurring)
+        self.assertEqual(transaction.recurring_frequency, Transaction.WEEKLY)
+        self.assertEqual(transaction.recurring_interval, 1)
+        self.assertEqual(transaction.recurring_start_date, start_date)
+        self.assertIsNotNone(transaction.next_occurrence)
+
+    def test_recurring_frequency_choices(self):
+        """Test all recurring frequency options."""
+        from datetime import date
+
+        frequencies = [
+            Transaction.DAILY,
+            Transaction.WEEKLY,
+            Transaction.MONTHLY,
+            Transaction.YEARLY,
+        ]
+
+        for frequency in frequencies:
+            transaction = Transaction.objects.create(
+                user=self.user1,
+                transaction_type=Transaction.EXPENSE,
+                amount=Decimal("100.00"),
+                category=self.category1,
+                description=f"Test {frequency} transaction",
+                date=date.today(),
+                is_recurring=True,
+                recurring_frequency=frequency,
+                recurring_interval=1,
+                recurring_start_date=date.today(),
+            )
+
+            self.assertEqual(transaction.recurring_frequency, frequency)
+
+    def test_next_occurrence_calculation_daily(self):
+        """Test next occurrence calculation for daily frequency."""
+        from datetime import date, timedelta
+
+        start_date = date.today()
+        transaction = Transaction.objects.create(
+            user=self.user1,
+            transaction_type=Transaction.EXPENSE,
+            amount=Decimal("10.00"),
+            category=self.category1,
+            description="Daily coffee",
+            date=start_date,
+            is_recurring=True,
+            recurring_frequency=Transaction.DAILY,
+            recurring_interval=1,
+            recurring_start_date=start_date,
+        )
+
+        expected_next = start_date + timedelta(days=1)
+        self.assertEqual(transaction.next_occurrence, expected_next)
+
+    def test_next_occurrence_calculation_weekly(self):
+        """Test next occurrence calculation for weekly frequency."""
+        from datetime import date, timedelta
+
+        start_date = date.today()
+        transaction = Transaction.objects.create(
+            user=self.user1,
+            transaction_type=Transaction.EXPENSE,
+            amount=Decimal("50.00"),
+            category=self.category1,
+            description="Weekly groceries",
+            date=start_date,
+            is_recurring=True,
+            recurring_frequency=Transaction.WEEKLY,
+            recurring_interval=1,
+            recurring_start_date=start_date,
+        )
+
+        expected_next = start_date + timedelta(weeks=1)
+        self.assertEqual(transaction.next_occurrence, expected_next)
+
+    def test_next_occurrence_calculation_monthly(self):
+        """Test next occurrence calculation for monthly frequency."""
+        from datetime import date
+
+        from dateutil.relativedelta import relativedelta
+
+        start_date = date(2024, 1, 15)  # Use specific date for predictable testing
+        transaction = Transaction.objects.create(
+            user=self.user1,
+            transaction_type=Transaction.EXPENSE,
+            amount=Decimal("1200.00"),
+            category=self.category2,
+            description="Monthly rent",
+            date=start_date,
+            is_recurring=True,
+            recurring_frequency=Transaction.MONTHLY,
+            recurring_interval=1,
+            recurring_start_date=start_date,
+        )
+
+        expected_next = start_date + relativedelta(months=1)
+        self.assertEqual(transaction.next_occurrence, expected_next)
+
+    def test_next_occurrence_calculation_yearly(self):
+        """Test next occurrence calculation for yearly frequency."""
+        from datetime import date
+
+        from dateutil.relativedelta import relativedelta
+
+        start_date = date(2024, 3, 15)  # Use specific date for predictable testing
+        transaction = Transaction.objects.create(
+            user=self.user1,
+            transaction_type=Transaction.EXPENSE,
+            amount=Decimal("500.00"),
+            category=self.category1,
+            description="Annual subscription",
+            date=start_date,
+            is_recurring=True,
+            recurring_frequency=Transaction.YEARLY,
+            recurring_interval=1,
+            recurring_start_date=start_date,
+        )
+
+        expected_next = start_date + relativedelta(years=1)
+        self.assertEqual(transaction.next_occurrence, expected_next)
+
+    def test_recurring_interval_handling(self):
+        """Test different interval values for recurring transactions."""
+        from datetime import date, timedelta
+
+        start_date = date.today()
+
+        # Every 2 weeks
+        transaction = Transaction.objects.create(
+            user=self.user1,
+            transaction_type=Transaction.EXPENSE,
+            amount=Decimal("100.00"),
+            category=self.category1,
+            description="Bi-weekly expense",
+            date=start_date,
+            is_recurring=True,
+            recurring_frequency=Transaction.WEEKLY,
+            recurring_interval=2,
+            recurring_start_date=start_date,
+        )
+
+        expected_next = start_date + timedelta(weeks=2)
+        self.assertEqual(transaction.next_occurrence, expected_next)
+
+    def test_recurring_with_end_date(self):
+        """Test recurring transactions with end dates."""
+        from datetime import date, timedelta
+
+        start_date = date.today()
+        end_date = start_date + timedelta(days=30)
+
+        transaction = Transaction.objects.create(
+            user=self.user1,
+            transaction_type=Transaction.EXPENSE,
+            amount=Decimal("25.00"),
+            category=self.category1,
+            description="Limited time subscription",
+            date=start_date,
+            is_recurring=True,
+            recurring_frequency=Transaction.DAILY,
+            recurring_interval=1,
+            recurring_start_date=start_date,
+            recurring_end_date=end_date,
+        )
+
+        self.assertEqual(transaction.recurring_end_date, end_date)
+
+    def test_generate_next_transaction(self):
+        """Test generating the next transaction in a recurring series."""
+        from datetime import date, timedelta
+
+        start_date = date.today()
+        original_transaction = Transaction.objects.create(
+            user=self.user1,
+            transaction_type=Transaction.EXPENSE,
+            amount=Decimal("50.00"),
+            category=self.category1,
+            description="Weekly groceries",
+            date=start_date,
+            is_recurring=True,
+            recurring_frequency=Transaction.WEEKLY,
+            recurring_interval=1,
+            recurring_start_date=start_date,
+        )
+
+        # Generate next transaction
+        next_transaction = original_transaction.generate_next_transaction()
+
+        # Verify new transaction properties
+        self.assertEqual(next_transaction.user, self.user1)
+        self.assertEqual(next_transaction.transaction_type, Transaction.EXPENSE)
+        self.assertEqual(next_transaction.amount, Decimal("50.00"))
+        self.assertEqual(next_transaction.category, self.category1)
+        self.assertEqual(next_transaction.description, "Weekly groceries")
+        self.assertEqual(next_transaction.date, start_date + timedelta(weeks=1))
+        self.assertFalse(
+            next_transaction.is_recurring
+        )  # Generated transactions are not recurring
+        self.assertEqual(next_transaction.parent_transaction, original_transaction)
+
+    def test_update_next_occurrence_after_generation(self):
+        """Test that next_occurrence is updated after generating a transaction."""
+        from datetime import date, timedelta
+
+        start_date = date.today()
+        transaction = Transaction.objects.create(
+            user=self.user1,
+            transaction_type=Transaction.EXPENSE,
+            amount=Decimal("30.00"),
+            category=self.category1,
+            description="Daily coffee",
+            date=start_date,
+            is_recurring=True,
+            recurring_frequency=Transaction.DAILY,
+            recurring_interval=1,
+            recurring_start_date=start_date,
+        )
+
+        original_next = transaction.next_occurrence
+        transaction.generate_next_transaction()
+
+        # Refresh from database
+        transaction.refresh_from_db()
+
+        # Next occurrence should be updated
+        expected_new_next = original_next + timedelta(days=1)
+        self.assertEqual(transaction.next_occurrence, expected_new_next)
+
+    def test_recurring_transaction_validation_requires_frequency(self):
+        """Test that recurring transactions require frequency."""
+        from datetime import date
+
+        with self.assertRaises(ValidationError):
+            transaction = Transaction(
+                user=self.user1,
+                transaction_type=Transaction.EXPENSE,
+                amount=Decimal("50.00"),
+                category=self.category1,
+                description="Invalid recurring transaction",
+                date=date.today(),
+                is_recurring=True,
+                # Missing recurring_frequency
+                recurring_interval=1,
+                recurring_start_date=date.today(),
+            )
+            transaction.full_clean()
+
+    def test_recurring_transaction_validation_requires_interval(self):
+        """Test that recurring transactions require positive interval."""
+        from datetime import date
+
+        with self.assertRaises(ValidationError):
+            transaction = Transaction(
+                user=self.user1,
+                transaction_type=Transaction.EXPENSE,
+                amount=Decimal("50.00"),
+                category=self.category1,
+                description="Invalid recurring transaction",
+                date=date.today(),
+                is_recurring=True,
+                recurring_frequency=Transaction.WEEKLY,
+                recurring_interval=0,  # Invalid interval
+                recurring_start_date=date.today(),
+            )
+            transaction.full_clean()
+
+    def test_recurring_transaction_validation_requires_start_date(self):
+        """Test that recurring transactions require start date."""
+        from datetime import date
+
+        with self.assertRaises(ValidationError):
+            transaction = Transaction(
+                user=self.user1,
+                transaction_type=Transaction.EXPENSE,
+                amount=Decimal("50.00"),
+                category=self.category1,
+                description="Invalid recurring transaction",
+                date=date.today(),
+                is_recurring=True,
+                recurring_frequency=Transaction.WEEKLY,
+                recurring_interval=1,
+                # Missing recurring_start_date
+            )
+            transaction.full_clean()
+
+    def test_recurring_end_date_after_start_date(self):
+        """Test that recurring end date must be after start date."""
+        from datetime import date, timedelta
+
+        start_date = date.today()
+        end_date = start_date - timedelta(days=1)  # End before start
+
+        with self.assertRaises(ValidationError):
+            transaction = Transaction(
+                user=self.user1,
+                transaction_type=Transaction.EXPENSE,
+                amount=Decimal("50.00"),
+                category=self.category1,
+                description="Invalid date range",
+                date=start_date,
+                is_recurring=True,
+                recurring_frequency=Transaction.DAILY,
+                recurring_interval=1,
+                recurring_start_date=start_date,
+                recurring_end_date=end_date,
+            )
+            transaction.full_clean()
+
+    def test_non_recurring_transaction_ignores_recurring_fields(self):
+        """Test that non-recurring transactions ignore recurring fields."""
+        from datetime import date
+
+        transaction = Transaction.objects.create(
+            user=self.user1,
+            transaction_type=Transaction.EXPENSE,
+            amount=Decimal("25.00"),
+            category=self.category1,
+            description="One-time transaction",
+            date=date.today(),
+            is_recurring=False,
+            # These fields should be ignored
+            recurring_frequency=Transaction.WEEKLY,
+            recurring_interval=1,
+            recurring_start_date=date.today(),
+        )
+
+        self.assertFalse(transaction.is_recurring)
+        self.assertIsNone(transaction.next_occurrence)
+
+    def test_recurring_transaction_month_end_edge_case(self):
+        """Test recurring transactions on month-end dates."""
+        from datetime import date
+
+        # Start on January 31st
+        start_date = date(2024, 1, 31)
+        transaction = Transaction.objects.create(
+            user=self.user1,
+            transaction_type=Transaction.EXPENSE,
+            amount=Decimal("1000.00"),
+            category=self.category2,
+            description="Month-end rent",
+            date=start_date,
+            is_recurring=True,
+            recurring_frequency=Transaction.MONTHLY,
+            recurring_interval=1,
+            recurring_start_date=start_date,
+        )
+
+        # Next occurrence should handle February (28/29 days)
+        expected_next = date(2024, 2, 29)  # 2024 is a leap year
+        self.assertEqual(transaction.next_occurrence, expected_next)
+
+    def test_recurring_transaction_leap_year_handling(self):
+        """Test recurring transactions handle leap years correctly."""
+        from datetime import date
+
+        # Start on February 29th (leap year)
+        start_date = date(2024, 2, 29)
+        transaction = Transaction.objects.create(
+            user=self.user1,
+            transaction_type=Transaction.EXPENSE,
+            amount=Decimal("100.00"),
+            category=self.category1,
+            description="Leap year transaction",
+            date=start_date,
+            is_recurring=True,
+            recurring_frequency=Transaction.YEARLY,
+            recurring_interval=1,
+            recurring_start_date=start_date,
+        )
+
+        # Next occurrence should be February 28, 2025 (non-leap year)
+        expected_next = date(2025, 2, 28)
+        self.assertEqual(transaction.next_occurrence, expected_next)
+
+    def test_stop_recurring_transaction(self):
+        """Test stopping a recurring transaction."""
+        from datetime import date
+
+        transaction = Transaction.objects.create(
+            user=self.user1,
+            transaction_type=Transaction.EXPENSE,
+            amount=Decimal("50.00"),
+            category=self.category1,
+            description="Weekly groceries",
+            date=date.today(),
+            is_recurring=True,
+            recurring_frequency=Transaction.WEEKLY,
+            recurring_interval=1,
+            recurring_start_date=date.today(),
+        )
+
+        # Stop the recurring transaction
+        transaction.stop_recurring()
+
+        self.assertFalse(transaction.is_recurring)
+        self.assertIsNone(transaction.next_occurrence)
+
+    def test_parent_transaction_relationship(self):
+        """Test parent-child relationship for recurring transactions."""
+        from datetime import date
+
+        parent_transaction = Transaction.objects.create(
+            user=self.user1,
+            transaction_type=Transaction.EXPENSE,
+            amount=Decimal("50.00"),
+            category=self.category1,
+            description="Weekly groceries",
+            date=date.today(),
+            is_recurring=True,
+            recurring_frequency=Transaction.WEEKLY,
+            recurring_interval=1,
+            recurring_start_date=date.today(),
+        )
+
+        # Generate child transaction
+        child_transaction = parent_transaction.generate_next_transaction()
+
+        # Verify relationship
+        self.assertEqual(child_transaction.parent_transaction, parent_transaction)
+        self.assertIn(child_transaction, parent_transaction.recurring_children.all())
+
+    def test_user_isolation_recurring_transactions(self):
+        """Test that recurring transactions respect user isolation."""
+        from datetime import date
+
+        # Create recurring transaction for user1
+        transaction = Transaction.objects.create(
+            user=self.user1,
+            transaction_type=Transaction.EXPENSE,
+            amount=Decimal("50.00"),
+            category=self.category1,
+            description="User1 recurring",
+            date=date.today(),
+            is_recurring=True,
+            recurring_frequency=Transaction.WEEKLY,
+            recurring_interval=1,
+            recurring_start_date=date.today(),
+        )
+
+        # Generate next transaction - should belong to user1
+        next_transaction = transaction.generate_next_transaction()
+        self.assertEqual(next_transaction.user, self.user1)
+
+        # Verify user2 cannot access this transaction
+        user2_transactions = Transaction.objects.filter(user=self.user2)
+        self.assertNotIn(transaction, user2_transactions)
+        self.assertNotIn(next_transaction, user2_transactions)
+
+
+class RecurringTransactionTasksTestCase(TestCase):
+    """Test case for recurring transaction Celery tasks (Task 2.1.3)."""
+
+    def setUp(self):
+        """Set up test data."""
+        self.user1 = UserFactory()
+        self.user2 = UserFactory()
+        self.category1 = CategoryFactory(user=self.user1, name="Groceries")
+        self.category2 = CategoryFactory(user=self.user2, name="Rent")
+
+    def test_generate_recurring_transactions_task(self):
+        """Test the Celery task for generating recurring transactions."""
+        from datetime import date, timedelta
+
+        from apps.expenses.tasks import generate_recurring_transactions
+
+        # Create a recurring transaction that's due
+        yesterday = date.today() - timedelta(days=1)
+        transaction = Transaction.objects.create(
+            user=self.user1,
+            transaction_type=Transaction.EXPENSE,
+            amount=Decimal("50.00"),
+            category=self.category1,
+            description="Daily coffee",
+            date=yesterday,
+            is_recurring=True,
+            recurring_frequency=Transaction.DAILY,
+            recurring_interval=1,
+            recurring_start_date=yesterday,
+            next_occurrence=yesterday,  # Due yesterday
+        )
+
+        # Run the task
+        result = generate_recurring_transactions()
+
+        # Verify results
+        self.assertEqual(result["processed"], 1)
+        self.assertEqual(result["generated"], 1)
+        self.assertEqual(result["errors"], 0)
+        self.assertEqual(result["user_count"], 1)
+
+        # Verify the new transaction was created
+        generated_transactions = Transaction.objects.filter(
+            parent_transaction=transaction,
+            is_recurring=False,
+        )
+        self.assertEqual(generated_transactions.count(), 1)
+
+    def test_generate_user_specific_recurring_transactions(self):
+        """Test generating recurring transactions for a specific user."""
+        from datetime import date, timedelta
+
+        from apps.expenses.tasks import generate_recurring_transactions
+
+        yesterday = date.today() - timedelta(days=1)
+
+        # Create transactions for both users
+        transaction1 = Transaction.objects.create(
+            user=self.user1,
+            transaction_type=Transaction.EXPENSE,
+            amount=Decimal("50.00"),
+            category=self.category1,
+            description="User1 transaction",
+            date=yesterday,
+            is_recurring=True,
+            recurring_frequency=Transaction.DAILY,
+            recurring_interval=1,
+            recurring_start_date=yesterday,
+            next_occurrence=yesterday,
+        )
+
+        transaction2 = Transaction.objects.create(
+            user=self.user2,
+            transaction_type=Transaction.EXPENSE,
+            amount=Decimal("100.00"),
+            category=self.category2,
+            description="User2 transaction",
+            date=yesterday,
+            is_recurring=True,
+            recurring_frequency=Transaction.DAILY,
+            recurring_interval=1,
+            recurring_start_date=yesterday,
+            next_occurrence=yesterday,
+        )
+
+        # Generate only for user1
+        result = generate_recurring_transactions(user_id=self.user1.id)
+
+        # Verify only user1's transaction was processed
+        self.assertEqual(result["processed"], 1)
+        self.assertEqual(result["generated"], 1)
+        self.assertEqual(result["user_count"], 1)
+
+        # Verify correct transaction was generated
+        user1_generated = Transaction.objects.filter(
+            parent_transaction=transaction1,
+            is_recurring=False,
+        )
+        user2_generated = Transaction.objects.filter(
+            parent_transaction=transaction2,
+            is_recurring=False,
+        )
+
+        self.assertEqual(user1_generated.count(), 1)
+        self.assertEqual(user2_generated.count(), 0)
+
+    def test_cleanup_expired_recurring_transactions_task(self):
+        """Test the task for cleaning up expired recurring transactions."""
+        from datetime import date, timedelta
+
+        from apps.expenses.tasks import cleanup_expired_recurring_transactions
+
+        start_date = date.today() - timedelta(days=10)
+        past_end_date = date.today() - timedelta(days=5)
+
+        # Create an expired recurring transaction
+        transaction = Transaction.objects.create(
+            user=self.user1,
+            transaction_type=Transaction.EXPENSE,
+            amount=Decimal("50.00"),
+            category=self.category1,
+            description="Expired subscription",
+            date=start_date,
+            is_recurring=True,
+            recurring_frequency=Transaction.MONTHLY,
+            recurring_interval=1,
+            recurring_start_date=start_date,
+            recurring_end_date=past_end_date,  # Already expired
+        )
+
+        # Run the cleanup task
+        result = cleanup_expired_recurring_transactions()
+
+        # Verify results
+        self.assertEqual(result["processed"], 1)
+        self.assertEqual(result["stopped"], 1)
+
+        # Verify transaction was stopped
+        transaction.refresh_from_db()
+        self.assertFalse(transaction.is_recurring)
+        self.assertIsNone(transaction.next_occurrence)
+
+    def test_generate_upcoming_recurring_transactions_task(self):
+        """Test pre-generating upcoming recurring transactions."""
+        from datetime import date, timedelta
+
+        from apps.expenses.tasks import generate_upcoming_recurring_transactions
+
+        tomorrow = date.today() + timedelta(days=1)
+
+        # Create a transaction due tomorrow
+        transaction = Transaction.objects.create(
+            user=self.user1,
+            transaction_type=Transaction.EXPENSE,
+            amount=Decimal("50.00"),
+            category=self.category1,
+            description="Future transaction",
+            date=date.today(),
+            is_recurring=True,
+            recurring_frequency=Transaction.DAILY,
+            recurring_interval=1,
+            recurring_start_date=date.today(),
+            next_occurrence=tomorrow,
+        )
+
+        # Generate upcoming transactions for next 7 days
+        result = generate_upcoming_recurring_transactions(days_ahead=7)
+
+        # Verify results
+        self.assertEqual(result["processed"], 1)
+        self.assertEqual(result["generated"], 1)
+        self.assertEqual(result["errors"], 0)
+
+        # Verify the future transaction was created
+        generated_transactions = Transaction.objects.filter(
+            parent_transaction=transaction,
+            date=tomorrow,
+            is_recurring=False,
+        )
+        self.assertEqual(generated_transactions.count(), 1)
+
+    def test_validate_recurring_transactions_task(self):
+        """Test the validation task for recurring transactions."""
+        from datetime import date, timedelta
+
+        from apps.expenses.tasks import validate_recurring_transactions
+
+        # Create a recurring transaction with incorrect next_occurrence
+        transaction = Transaction.objects.create(
+            user=self.user1,
+            transaction_type=Transaction.EXPENSE,
+            amount=Decimal("50.00"),
+            category=self.category1,
+            description="Invalid next occurrence",
+            date=date.today(),
+            is_recurring=True,
+            recurring_frequency=Transaction.WEEKLY,
+            recurring_interval=1,
+            recurring_start_date=date.today(),
+        )
+
+        # Manually set incorrect next_occurrence
+        Transaction.objects.filter(id=transaction.id).update(
+            next_occurrence=date.today() + timedelta(days=10)  # Should be 7 days
+        )
+
+        # Run validation task
+        result = validate_recurring_transactions()
+
+        # Verify results
+        self.assertEqual(result["total"], 1)
+        self.assertEqual(result["valid"], 1)
+        self.assertEqual(result["fixed"], 1)
+        self.assertEqual(result["invalid"], 0)
+
+        # Verify next_occurrence was corrected
+        transaction.refresh_from_db()
+        expected_next = date.today() + timedelta(weeks=1)
+        self.assertEqual(transaction.next_occurrence, expected_next)
+
+    def test_task_handles_invalid_recurring_transactions(self):
+        """Test that tasks handle invalid recurring transactions gracefully."""
+        from datetime import date
+
+        from apps.expenses.tasks import validate_recurring_transactions
+
+        # Create a valid transaction first, then make it invalid
+        transaction = Transaction.objects.create(
+            user=self.user1,
+            transaction_type=Transaction.EXPENSE,
+            amount=Decimal("50.00"),
+            category=self.category1,
+            description="Initially valid recurring",
+            date=date.today(),
+            is_recurring=True,
+            recurring_frequency=Transaction.DAILY,
+            recurring_interval=1,
+            recurring_start_date=date.today(),
+        )
+
+        # Make it invalid by removing required fields using update (bypasses validation)
+        Transaction.objects.filter(id=transaction.id).update(
+            recurring_frequency=None,
+            recurring_interval=None,
+            recurring_start_date=None,
+        )
+
+        # Run validation task
+        result = validate_recurring_transactions()
+
+        # Verify invalid transaction was caught
+        self.assertEqual(result["total"], 1)
+        self.assertEqual(result["valid"], 0)
+        self.assertEqual(result["invalid"], 1)
+        self.assertEqual(len(result["errors"]), 1)
+        self.assertEqual(result["errors"][0]["transaction_id"], transaction.id)
+
+    def test_task_prevents_duplicate_generation(self):
+        """Test that upcoming generation doesn't create duplicates."""
+        from datetime import date, timedelta
+
+        from apps.expenses.tasks import generate_upcoming_recurring_transactions
+
+        tomorrow = date.today() + timedelta(days=1)
+
+        # Create a transaction due tomorrow
+        transaction = Transaction.objects.create(
+            user=self.user1,
+            transaction_type=Transaction.EXPENSE,
+            amount=Decimal("50.00"),
+            category=self.category1,
+            description="Future transaction",
+            date=date.today(),
+            is_recurring=True,
+            recurring_frequency=Transaction.DAILY,
+            recurring_interval=1,
+            recurring_start_date=date.today(),
+            next_occurrence=tomorrow,
+        )
+
+        # Generate once
+        result1 = generate_upcoming_recurring_transactions(days_ahead=7)
+        self.assertEqual(result1["generated"], 1)
+
+        # Reset next_occurrence to test duplicate prevention logic
+        Transaction.objects.filter(id=transaction.id).update(next_occurrence=tomorrow)
+
+        # Generate again - should not create duplicates
+        result2 = generate_upcoming_recurring_transactions(days_ahead=7)
+        self.assertEqual(result2["generated"], 0)
+        self.assertEqual(result2["processed"], 1)
+
+        # Verify only one transaction was created
+        generated_transactions = Transaction.objects.filter(
+            parent_transaction=transaction,
+            date=tomorrow,
+            is_recurring=False,
+        )
+        self.assertEqual(generated_transactions.count(), 1)

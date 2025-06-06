@@ -141,12 +141,12 @@ This document serves as the master task list for the Personal Finance Dashboard 
   - [x] Ensure user data isolation
   - [x] Test edge cases
 
-- [ ] **2.1.3** Recurring transactions
-  - [ ] Write tests for recurring transaction logic
-  - [ ] Add recurring transaction fields
-  - [ ] Implement recurring frequency options
-  - [ ] Create scheduled tasks for recurring transactions
-  - [ ] Test recurring transaction generation
+- [x] **2.1.3** Recurring transactions
+  - [x] Write tests for recurring transaction logic
+  - [x] Add recurring transaction fields
+  - [x] Implement recurring frequency options
+  - [x] Create scheduled tasks for recurring transactions
+  - [x] Test recurring transaction generation
 
 ### 2.2 Transaction API
 
