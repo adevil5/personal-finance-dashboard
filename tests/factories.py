@@ -32,3 +32,16 @@ class AdminUserFactory(UserFactory):
     is_superuser = True
     username = factory.Sequence(lambda n: f"admin{n}")
     email = factory.LazyAttribute(lambda obj: f"{obj.username}@example.com")
+
+
+class CategoryFactory(DjangoModelFactory):
+    """Factory for creating Category instances."""
+
+    class Meta:
+        model = "expenses.Category"
+
+    name = factory.Faker("word")
+    user = factory.SubFactory(UserFactory)
+    color = factory.Faker("hex_color")
+    icon = factory.Faker("word")
+    is_active = True

@@ -110,12 +110,12 @@ This document serves as the master task list for the Personal Finance Dashboard 
 
 ### 1.4 Category System
 
-- [ ] **1.4.1** Category model
-  - [ ] Write tests for hierarchical categories
-  - [ ] Implement Category model with parent relationships
-  - [ ] Add icon and color fields
-  - [ ] Implement user-specific categories
-  - [ ] Test category tree operations
+- [x] **1.4.1** Category model
+  - [x] Write tests for hierarchical categories
+  - [x] Implement Category model with parent relationships
+  - [x] Add icon and color fields
+  - [x] Implement user-specific categories
+  - [x] Test category tree operations
 
 - [ ] **1.4.2** Default categories
   - [ ] Create migration for default categories
