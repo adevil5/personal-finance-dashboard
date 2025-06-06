@@ -143,3 +143,31 @@ class Category(models.Model):
     def get_category_tree(cls, user):
         """Get all categories for a user ordered for tree display."""
         return cls.objects.filter(user=user, is_active=True).order_by("name")
+
+    @classmethod
+    def create_default_categories(cls, user):
+        """Create default categories for a user."""
+        from .default_categories import DEFAULT_CATEGORIES
+
+        # Check if user already has categories to avoid duplicates
+        if cls.objects.filter(user=user).exists():
+            return
+
+        for category_data in DEFAULT_CATEGORIES:
+            # Create parent category
+            parent_category = cls.objects.create(
+                name=category_data["name"],
+                user=user,
+                color=category_data["color"],
+                icon=category_data["icon"],
+            )
+
+            # Create child categories
+            for child_data in category_data["children"]:
+                cls.objects.create(
+                    name=child_data["name"],
+                    user=user,
+                    parent=parent_category,
+                    color=child_data["color"],
+                    icon=child_data["icon"],
+                )

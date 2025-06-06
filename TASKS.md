@@ -117,10 +117,10 @@ This document serves as the master task list for the Personal Finance Dashboard 
   - [x] Implement user-specific categories
   - [x] Test category tree operations
 
-- [ ] **1.4.2** Default categories
-  - [ ] Create migration for default categories
-  - [ ] Add category fixtures for new users
-  - [ ] Test category initialization
+- [x] **1.4.2** Default categories
+  - [x] Create migration for default categories
+  - [x] Add category fixtures for new users
+  - [x] Test category initialization
 
 ## Phase 2: Transaction Management (Days 8-11)
 
