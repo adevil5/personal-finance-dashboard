@@ -134,12 +134,12 @@ This document serves as the master task list for the Personal Finance Dashboard 
   - [x] Add receipt file handling
   - [x] Test all transaction operations
 
-- [ ] **2.1.2** Transaction validation
-  - [ ] Write tests for validation rules
-  - [ ] Implement amount validation (positive for expenses)
-  - [ ] Add date validation
-  - [ ] Ensure user data isolation
-  - [ ] Test edge cases
+- [x] **2.1.2** Transaction validation
+  - [x] Write tests for validation rules
+  - [x] Implement amount validation (positive for expenses)
+  - [x] Add date validation
+  - [x] Ensure user data isolation
+  - [x] Test edge cases
 
 - [ ] **2.1.3** Recurring transactions
   - [ ] Write tests for recurring transaction logic

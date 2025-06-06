@@ -920,3 +920,340 @@ class TransactionModelTestCase(TestCase):
         self.assertEqual(saved_transaction.description, unicode_text)
         self.assertEqual(saved_transaction.notes, unicode_text)
         self.assertEqual(saved_transaction.merchant, unicode_text)
+
+
+class TransactionValidationEdgeCasesTestCase(TestCase):
+    """Test case for Transaction model validation edge cases (Task 2.1.2)."""
+
+    def setUp(self):
+        """Set up test data."""
+        self.user1 = UserFactory()
+        self.user2 = UserFactory()
+        self.category1 = CategoryFactory(user=self.user1, name="Groceries")
+        self.category_user2 = CategoryFactory(user=self.user2, name="User2 Category")
+
+    def test_amount_validation_extremely_small_values(self):
+        """Test validation with extremely small positive amounts."""
+        # Test minimum valid amount (0.01)
+        transaction = Transaction(
+            user=self.user1,
+            transaction_type=Transaction.EXPENSE,
+            amount=Decimal("0.01"),
+            category=self.category1,
+            description="Minimum amount",
+            date=timezone.now().date(),
+        )
+        transaction.full_clean()  # Should not raise ValidationError
+
+    def test_amount_validation_large_values(self):
+        """Test validation with large amounts within field limits."""
+        # Test large valid amount (8 digits before decimal)
+        transaction = Transaction(
+            user=self.user1,
+            transaction_type=Transaction.EXPENSE,
+            amount=Decimal("99999999.99"),
+            category=self.category1,
+            description="Large amount",
+            date=timezone.now().date(),
+        )
+        transaction.full_clean()  # Should not raise ValidationError
+
+    def test_amount_validation_string_values(self):
+        """Test validation rejects string values for amount."""
+        with self.assertRaises((ValidationError, TypeError, ValueError)):
+            transaction = Transaction(
+                user=self.user1,
+                transaction_type=Transaction.EXPENSE,
+                amount="not_a_number",
+                category=self.category1,
+                description="String amount",
+                date=timezone.now().date(),
+            )
+            transaction.full_clean()
+
+    def test_date_validation_none_value(self):
+        """Test validation when date is None."""
+        with self.assertRaises(ValidationError):
+            transaction = Transaction(
+                user=self.user1,
+                transaction_type=Transaction.EXPENSE,
+                amount=Decimal("50.00"),
+                category=self.category1,
+                description="None date",
+                date=None,
+            )
+            transaction.full_clean()
+
+    def test_date_validation_far_past_date(self):
+        """Test validation allows dates far in the past."""
+        from datetime import date
+
+        # Test a date 100 years ago
+        old_date = date(1920, 1, 1)
+        transaction = Transaction(
+            user=self.user1,
+            transaction_type=Transaction.EXPENSE,
+            amount=Decimal("50.00"),
+            category=self.category1,
+            description="Very old transaction",
+            date=old_date,
+        )
+        transaction.full_clean()  # Should not raise ValidationError
+
+    def test_date_validation_year_boundary(self):
+        """Test validation around year boundaries."""
+        from datetime import date
+
+        # Test December 31st of current year
+        dec_31 = date(timezone.now().year, 12, 31)
+        if dec_31 <= date.today():
+            transaction = Transaction(
+                user=self.user1,
+                transaction_type=Transaction.EXPENSE,
+                amount=Decimal("50.00"),
+                category=self.category1,
+                description="Year end transaction",
+                date=dec_31,
+            )
+            transaction.full_clean()  # Should not raise ValidationError
+
+    def test_user_isolation_category_validation_detailed(self):
+        """Test detailed user isolation validation for categories."""
+        # Create multiple categories for different users
+        user1_category1 = CategoryFactory(user=self.user1, name="User1 Cat1")
+        user2_category1 = CategoryFactory(user=self.user2, name="User2 Cat1")
+
+        # Valid: User1 transaction with User1 category
+        transaction = Transaction(
+            user=self.user1,
+            transaction_type=Transaction.EXPENSE,
+            amount=Decimal("50.00"),
+            category=user1_category1,
+            description="Valid user1 transaction",
+            date=timezone.now().date(),
+        )
+        transaction.full_clean()  # Should not raise ValidationError
+
+        # Invalid: User1 transaction with User2 category
+        with self.assertRaises(ValidationError):
+            transaction = Transaction(
+                user=self.user1,
+                transaction_type=Transaction.EXPENSE,
+                amount=Decimal("50.00"),
+                category=user2_category1,
+                description="Invalid cross-user transaction",
+                date=timezone.now().date(),
+            )
+            transaction.full_clean()
+
+    def test_category_validation_inactive_category(self):
+        """Test validation with inactive (soft-deleted) categories."""
+        # Create an inactive category
+        inactive_category = CategoryFactory(
+            user=self.user1, name="Inactive", is_active=False
+        )
+
+        # Transaction should still be valid with inactive category
+        # (business rule: don't prevent using inactive categories for
+        # existing transactions)
+        transaction = Transaction(
+            user=self.user1,
+            transaction_type=Transaction.EXPENSE,
+            amount=Decimal("50.00"),
+            category=inactive_category,
+            description="Transaction with inactive category",
+            date=timezone.now().date(),
+        )
+        transaction.full_clean()  # Should not raise ValidationError
+
+    def test_transaction_type_validation_required(self):
+        """Test that transaction_type is required."""
+        with self.assertRaises(ValidationError):
+            transaction = Transaction(
+                user=self.user1,
+                transaction_type=None,
+                amount=Decimal("50.00"),
+                category=self.category1,
+                description="No transaction type",
+                date=timezone.now().date(),
+            )
+            transaction.full_clean()
+
+    def test_transaction_type_validation_invalid_choice(self):
+        """Test validation rejects invalid transaction types."""
+        with self.assertRaises(ValidationError):
+            transaction = Transaction(
+                user=self.user1,
+                transaction_type="invalid_type",
+                amount=Decimal("50.00"),
+                category=self.category1,
+                description="Invalid transaction type",
+                date=timezone.now().date(),
+            )
+            transaction.full_clean()
+
+    def test_description_validation_required(self):
+        """Test that description field is required."""
+        with self.assertRaises(ValidationError):
+            transaction = Transaction(
+                user=self.user1,
+                transaction_type=Transaction.EXPENSE,
+                amount=Decimal("50.00"),
+                category=self.category1,
+                description="",  # Empty description
+                date=timezone.now().date(),
+            )
+            transaction.full_clean()
+
+    def test_description_validation_max_length(self):
+        """Test description field max length validation."""
+        # Create a description that exceeds 255 characters
+        long_description = "x" * 256
+
+        with self.assertRaises(ValidationError):
+            transaction = Transaction(
+                user=self.user1,
+                transaction_type=Transaction.EXPENSE,
+                amount=Decimal("50.00"),
+                category=self.category1,
+                description=long_description,
+                date=timezone.now().date(),
+            )
+            transaction.full_clean()
+
+    def test_category_validation_cross_user_child_category(self):
+        """Test validation prevents using child categories from other users."""
+        # Create parent and child categories for user2
+        parent_cat = CategoryFactory(user=self.user2, name="Parent")
+        child_cat = CategoryFactory(user=self.user2, name="Child", parent=parent_cat)
+
+        # User1 should not be able to use user2's child category
+        with self.assertRaises(ValidationError):
+            transaction = Transaction(
+                user=self.user1,
+                transaction_type=Transaction.EXPENSE,
+                amount=Decimal("50.00"),
+                category=child_cat,
+                description="Cross-user child category",
+                date=timezone.now().date(),
+            )
+            transaction.full_clean()
+
+    def test_amount_validation_different_transaction_types(self):
+        """Test amount validation applies to all transaction types."""
+        transaction_types = [
+            Transaction.EXPENSE,
+            Transaction.INCOME,
+            Transaction.TRANSFER,
+        ]
+
+        for trans_type in transaction_types:
+            # Test negative amount fails for all types
+            with self.assertRaises(ValidationError):
+                transaction = Transaction(
+                    user=self.user1,
+                    transaction_type=trans_type,
+                    amount=Decimal("-50.00"),
+                    category=self.category1
+                    if trans_type == Transaction.EXPENSE
+                    else None,
+                    description=f"Negative {trans_type}",
+                    date=timezone.now().date(),
+                )
+                transaction.full_clean()
+
+            # Test zero amount fails for all types
+            with self.assertRaises(ValidationError):
+                transaction = Transaction(
+                    user=self.user1,
+                    transaction_type=trans_type,
+                    amount=Decimal("0.00"),
+                    category=self.category1
+                    if trans_type == Transaction.EXPENSE
+                    else None,
+                    description=f"Zero {trans_type}",
+                    date=timezone.now().date(),
+                )
+                transaction.full_clean()
+
+    def test_category_requirement_edge_cases(self):
+        """Test category requirement edge cases for different transaction types."""
+        # Income with category should be valid
+        transaction = Transaction(
+            user=self.user1,
+            transaction_type=Transaction.INCOME,
+            amount=Decimal("1000.00"),
+            category=self.category1,
+            description="Income with category",
+            date=timezone.now().date(),
+        )
+        transaction.full_clean()  # Should not raise ValidationError
+
+        # Transfer with category should be valid
+        transaction = Transaction(
+            user=self.user1,
+            transaction_type=Transaction.TRANSFER,
+            amount=Decimal("500.00"),
+            category=self.category1,
+            description="Transfer with category",
+            date=timezone.now().date(),
+        )
+        transaction.full_clean()  # Should not raise ValidationError
+
+        # Expense without category should fail
+        with self.assertRaises(ValidationError):
+            transaction = Transaction(
+                user=self.user1,
+                transaction_type=Transaction.EXPENSE,
+                amount=Decimal("50.00"),
+                category=None,
+                description="Expense without category",
+                date=timezone.now().date(),
+            )
+            transaction.full_clean()
+
+    def test_validation_with_all_optional_fields_populated(self):
+        """Test validation when all optional fields are provided."""
+        # Create a test file for receipt
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        test_file = SimpleUploadedFile(
+            "test_receipt.txt", b"Test receipt content", content_type="text/plain"
+        )
+
+        transaction = Transaction(
+            user=self.user1,
+            transaction_type=Transaction.EXPENSE,
+            amount=Decimal("123.45"),
+            category=self.category1,
+            description="Complete transaction",
+            notes="Detailed notes about this transaction",
+            merchant="Test Merchant Name",
+            date=timezone.now().date(),
+            receipt=test_file,
+        )
+        transaction.full_clean()  # Should not raise ValidationError
+
+    def test_validation_preserves_encrypted_field_data(self):
+        """Test that validation doesn't corrupt encrypted field data."""
+        sensitive_notes = "Sensitive financial information"
+        sensitive_merchant = "Private merchant name"
+
+        transaction = Transaction.objects.create(
+            user=self.user1,
+            transaction_type=Transaction.EXPENSE,
+            amount=Decimal("100.00"),
+            category=self.category1,
+            description="Encryption test",
+            notes=sensitive_notes,
+            merchant=sensitive_merchant,
+            date=timezone.now().date(),
+        )
+
+        # Retrieve and validate again to ensure encryption is preserved
+        saved_transaction = Transaction.objects.get(id=transaction.id)
+        saved_transaction.full_clean()  # Should not raise ValidationError
+
+        # Verify encrypted data is still correctly retrieved
+        self.assertEqual(saved_transaction.notes, sensitive_notes)
+        self.assertEqual(saved_transaction.merchant, sensitive_merchant)

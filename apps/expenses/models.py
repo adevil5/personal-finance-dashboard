@@ -309,7 +309,7 @@ class Transaction(models.Model):
             raise ValidationError("Transaction date cannot be in the future.")
 
         # Validate category assignment
-        if self.category:
+        if self.category and self.user:
             # Ensure category belongs to same user
             if self.category.user != self.user:
                 raise ValidationError("Category must belong to the same user.")
