@@ -96,7 +96,7 @@ class EmailVerificationView(View):
     def get(self, request, uidb64, token):
         try:
             uid = force_str(urlsafe_base64_decode(uidb64))
-            user = get_object_or_404(User, pk=uid)
+            user = User.objects.get(pk=uid)
         except (TypeError, ValueError, OverflowError, User.DoesNotExist):
             return redirect(reverse("users:verification_failed"))
 

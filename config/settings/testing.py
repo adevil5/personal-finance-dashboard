@@ -53,8 +53,9 @@ STATICFILES_STORAGE = "django.contrib.staticfiles.storage.StaticFilesStorage"
 CELERY_TASK_ALWAYS_EAGER = True
 CELERY_TASK_EAGER_PROPAGATES = True
 
-# Simplified authentication for tests
+# Authentication backends for tests (include email backend)
 AUTHENTICATION_BACKENDS = [
+    "apps.users.backends.EmailBackend",
     "django.contrib.auth.backends.ModelBackend",
 ]
 

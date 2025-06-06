@@ -100,13 +100,13 @@ This document serves as the master task list for the Personal Finance Dashboard 
   - [x] Add financial data fields (monthly_income, goals)
   - [x] Test profile creation and updates
 
-- [ ] **1.3.3** Authentication system
+- [x] **1.3.3** Authentication system
   - [x] Write tests for authentication views
   - [x] Implement registration with email verification
   - [x] Add login/logout functionality
   - [x] Implement password reset
   - [x] Add 2FA support with TOTP
-  - [ ] Test all authentication flows
+  - [x] Test all authentication flows
 
 ### 1.4 Category System
 

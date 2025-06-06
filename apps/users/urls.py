@@ -63,7 +63,7 @@ urlpatterns = [
         "password-reset/confirm/<uidb64>/<token>/",
         PasswordResetConfirmView.as_view(
             template_name="registration/password_reset_confirm.html",
-            success_url="/password-reset/complete/",
+            success_url="/auth/password-reset/complete/",
         ),
         name="password_reset_confirm",
     ),
