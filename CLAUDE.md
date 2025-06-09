@@ -136,6 +136,8 @@ npm run typecheck
 - Transaction amounts: `EncryptedDecimalField` with `amount_index` for filtering/sorting
 - Merchant/notes: `EncryptedCharField` with searchable indexes where needed
 - User isolation: Always filter querysets by `user=request.user` in serializers
+- Phone fields: `EncryptedPhoneField` with automatic normalization to E.164 format
+- Custom User model extends AbstractUser with encrypted phone, timezone, currency fields
 
 ### API Structure
 - RESTful API under `/api/v1/`
@@ -149,6 +151,8 @@ npm run typecheck
 - Nested category serialization (read-only) with write-only `category_id`
 - Bulk operations via dedicated serializers with proper context passing
 - Custom decimal validation: max 2 decimal places via `validate_amount`
+- CSV/Excel import via file upload with validation and error reporting
+- Recurring transactions automated via Celery periodic tasks
 
 ### Testing Strategy
 - TDD approach is mandatory
@@ -164,6 +168,12 @@ npm run typecheck
 - Test currency formatting with different currencies
 - Use `APIRequestFactory` for request context in serializer tests
 
+#### Budget Management Patterns
+- Budget alerts with configurable threshold monitoring (warning/critical percentages)
+- Dynamic spent amount calculations using aggregated transactions
+- Period-based budget tracking with date range validation
+- Alert notifications integrated with Celery for background processing
+
 ### Key Files to Check
 - `config/settings/base.py` - Core Django settings
 - `docker-compose.yml` - Local development setup
@@ -171,6 +181,7 @@ npm run typecheck
 - `.pre-commit-config.yaml` - Code quality hooks
 - `apps/core/security/` - PII encryption and masking utilities
 - `apps/expenses/serializers.py` - Transaction serialization patterns
+- `apps/budgets/models.py` - Budget model with alert configurations
 - `tests/expenses/test_serializers.py` - Comprehensive serializer test examples
 
 ## Development Notes
