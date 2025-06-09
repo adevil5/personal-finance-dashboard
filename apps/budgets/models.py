@@ -76,6 +76,28 @@ class Budget(models.Model):
         help_text="When this budget was last updated",
     )
 
+    # Alert configuration fields
+    alert_enabled = models.BooleanField(
+        default=False,
+        help_text="Whether alerts are enabled for this budget",
+    )
+
+    warning_threshold = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Warning alert threshold as percentage (e.g., 80.00 for 80%)",
+    )
+
+    critical_threshold = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Critical alert threshold as percentage (e.g., 100.00 for 100%)",
+    )
+
     class Meta:
         db_table = "budgets_budget"
         verbose_name = "Budget"
@@ -113,6 +135,24 @@ class Budget(models.Model):
             # Ensure category belongs to same user
             if self.category.user != self.user:
                 raise ValidationError("Category must belong to the same user.")
+
+        # Validate alert thresholds
+        if self.warning_threshold is not None and self.warning_threshold < Decimal("0"):
+            raise ValidationError("Warning threshold must be non-negative.")
+
+        if self.critical_threshold is not None and self.critical_threshold < Decimal(
+            "0"
+        ):
+            raise ValidationError("Critical threshold must be non-negative.")
+
+        if (
+            self.warning_threshold is not None
+            and self.critical_threshold is not None
+            and self.warning_threshold > self.critical_threshold
+        ):
+            raise ValidationError(
+                "Warning threshold cannot be greater than critical threshold."
+            )
 
         # Check for unique constraint violation manually for better error messages
         if self.user and self.period_start and self.period_end:
@@ -218,3 +258,171 @@ class Budget(models.Model):
             period_start__lte=current_date,
             period_end__gte=current_date,
         ).order_by("name")
+
+    def should_trigger_warning_alert(self):
+        """Check if a warning alert should be triggered for this budget."""
+        if not self.alert_enabled or not self.warning_threshold:
+            return False
+
+        utilization = self.calculate_utilization_percentage()
+        return utilization >= self.warning_threshold
+
+    def should_trigger_critical_alert(self):
+        """Check if a critical alert should be triggered for this budget."""
+        if not self.alert_enabled or not self.critical_threshold:
+            return False
+
+        utilization = self.calculate_utilization_percentage()
+        return utilization >= self.critical_threshold
+
+    def generate_alerts(self):
+        """Generate alerts for this budget if thresholds are crossed."""
+        generated_alerts = []
+
+        if not self.alert_enabled:
+            return generated_alerts
+
+        current_utilization = self.calculate_utilization_percentage()
+
+        # Check for warning alerts
+        if self.should_trigger_warning_alert():
+            alert = self._create_alert_if_not_exists("WARNING", current_utilization)
+            if alert:
+                generated_alerts.append(alert)
+
+        # Check for critical alerts
+        if self.should_trigger_critical_alert():
+            alert = self._create_alert_if_not_exists("CRITICAL", current_utilization)
+            if alert:
+                generated_alerts.append(alert)
+
+        return generated_alerts
+
+    def _create_alert_if_not_exists(self, alert_type, current_utilization):
+        """Create an alert if one doesn't already exist for this type."""
+        # Check if unresolved alert already exists for this type
+        existing_alert = BudgetAlert.objects.filter(
+            budget=self,
+            alert_type=getattr(BudgetAlert, alert_type),
+            is_resolved=False,
+        ).first()
+
+        if existing_alert:
+            return None  # Don't create duplicate alerts
+
+        # Create new alert
+        threshold = getattr(self, f"{alert_type.lower()}_threshold")
+        if alert_type == "WARNING":
+            message = f"Budget '{self.name}' has reached {threshold}% warning threshold"
+        else:  # CRITICAL
+            message = (
+                f"Budget '{self.name}' has reached {threshold}% critical threshold"
+            )
+
+        alert = BudgetAlert.objects.create(
+            budget=self,
+            alert_type=getattr(BudgetAlert, alert_type),
+            message=message,
+            triggered_at_percentage=current_utilization,
+        )
+
+        return alert
+
+
+class BudgetAlert(models.Model):
+    """
+    Budget alert model for tracking budget threshold violations.
+
+    Tracks when budgets reach warning or critical thresholds and provides
+    a notification system for users to be alerted about their spending.
+    """
+
+    WARNING = "WARNING"
+    CRITICAL = "CRITICAL"
+
+    ALERT_TYPE_CHOICES = [
+        (WARNING, "Warning"),
+        (CRITICAL, "Critical"),
+    ]
+
+    budget = models.ForeignKey(
+        Budget,
+        on_delete=models.CASCADE,
+        related_name="alerts",
+        help_text="Budget this alert is for",
+    )
+
+    alert_type = models.CharField(
+        max_length=10,
+        choices=ALERT_TYPE_CHOICES,
+        help_text="Type of alert (WARNING or CRITICAL)",
+    )
+
+    message = models.TextField(
+        help_text="Alert message describing the threshold violation",
+    )
+
+    triggered_at_percentage = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Budget utilization percentage when alert was triggered",
+    )
+
+    is_resolved = models.BooleanField(
+        default=False,
+        help_text="Whether this alert has been resolved",
+    )
+
+    resolved_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When this alert was resolved",
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        help_text="When this alert was created",
+    )
+
+    class Meta:
+        db_table = "budgets_budgetalert"
+        verbose_name = "Budget Alert"
+        verbose_name_plural = "Budget Alerts"
+        ordering = ["-created_at"]
+        unique_together = ["budget", "alert_type", "is_resolved"]
+        indexes = [
+            models.Index(fields=["budget", "is_resolved"]),
+            models.Index(fields=["budget", "alert_type", "is_resolved"]),
+            models.Index(fields=["created_at"]),
+        ]
+
+    def __str__(self):
+        """Return string representation of the alert."""
+        percentage = (
+            f" at {self.triggered_at_percentage}%"
+            if self.triggered_at_percentage
+            else ""
+        )
+        return f"{self.alert_type} alert for {self.budget.name}{percentage}"
+
+    def mark_as_resolved(self):
+        """Mark this alert as resolved."""
+        from django.utils import timezone
+
+        self.is_resolved = True
+        self.resolved_at = timezone.now()
+        self.save(update_fields=["is_resolved", "resolved_at"])
+
+    @classmethod
+    def get_active_alerts_for_budget(cls, budget):
+        """Get active (unresolved) alerts for a specific budget."""
+        return cls.objects.filter(budget=budget, is_resolved=False).order_by(
+            "-created_at"
+        )
+
+    @classmethod
+    def get_alerts_for_user(cls, user):
+        """Get all alerts for a specific user."""
+        return cls.objects.filter(budget__user=user).order_by("-created_at")

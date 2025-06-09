@@ -1,0 +1,25 @@
+Budget Alert: {{ budget.name }}
+
+Hello {{ user.first_name|default:user.username }},
+
+Your budget "{{ budget.name }}" has triggered a {{ alert.alert_type|lower }} alert.
+
+Alert Details:
+- Alert Type: {{ alert.alert_type }}
+- Budget Amount: ${{ budget.amount }}
+- Spent Amount: ${{ spent_amount }}
+- Remaining Amount: ${{ remaining_amount }}
+- Utilization: {{ utilization_percentage }}%
+
+Budget Period: {{ budget.period_start }} to {{ budget.period_end }}
+
+{% if alert.alert_type == "WARNING" %}
+This is a warning that you're approaching your budget limit. Consider reviewing your spending to stay on track.
+{% elif alert.alert_type == "CRITICAL" %}
+You have reached or exceeded your budget limit. Please review your spending immediately.
+{% endif %}
+
+You can view your budget details and update your spending at: {{ request.build_absolute_uri }}
+
+Best regards,
+Personal Finance Dashboard

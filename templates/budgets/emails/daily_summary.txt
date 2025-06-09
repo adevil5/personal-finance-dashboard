@@ -1,0 +1,24 @@
+Daily Budget Alert Summary
+
+Hello {{ user.first_name|default:user.username }},
+
+You have {{ alert_count }} active budget alert{{ alert_count|pluralize }} that need your attention:
+
+{% for alert in alerts %}
+• {{ alert.budget.name }} - {{ alert.alert_type }} alert
+  Utilization: {{ alert.triggered_at_percentage }}%
+  Spent: ${{ alert.budget.calculate_spent_amount }} of ${{ alert.budget.amount }}
+  Period: {{ alert.budget.period_start }} to {{ alert.budget.period_end }}
+
+{% endfor %}
+
+{% if alert_count > 1 %}
+Multiple budgets require your attention. Please review your spending across these categories.
+{% else %}
+Please review your spending for this budget to get back on track.
+{% endif %}
+
+You can manage your budgets and view detailed spending reports in your dashboard.
+
+Best regards,
+Personal Finance Dashboard

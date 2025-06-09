@@ -492,3 +492,400 @@ class BudgetModelTestCase(TestCase):
         budget.refresh_from_db()
         self.assertEqual(budget.amount_index, budget.amount)
         self.assertEqual(budget.amount_index, Decimal("750.25"))
+
+
+class BudgetAlertTestCase(TestCase):
+    """Test case for Budget alert functionality."""
+
+    def setUp(self):
+        """Set up test data."""
+        self.user1 = UserFactory()
+        self.user2 = UserFactory()
+        self.category1 = CategoryFactory(user=self.user1, name="Groceries")
+
+        # Create test dates
+        today = date.today()
+        self.start_date = today.replace(day=1)
+        self.end_date = today.replace(day=28)
+
+    def test_budget_alert_fields(self):
+        """Test that budget has alert-related fields."""
+        budget = Budget.objects.create(
+            user=self.user1,
+            category=self.category1,
+            amount=Decimal("500.00"),
+            period_start=self.start_date,
+            period_end=self.end_date,
+            name="Test Budget",
+            alert_enabled=True,
+            warning_threshold=Decimal("80.00"),
+            critical_threshold=Decimal("100.00"),
+        )
+
+        self.assertTrue(budget.alert_enabled)
+        self.assertEqual(budget.warning_threshold, Decimal("80.00"))
+        self.assertEqual(budget.critical_threshold, Decimal("100.00"))
+
+    def test_alert_threshold_validation(self):
+        """Test validation of alert threshold values."""
+        # Test negative warning threshold
+        with self.assertRaises(ValidationError):
+            budget = Budget(
+                user=self.user1,
+                category=self.category1,
+                amount=Decimal("500.00"),
+                period_start=self.start_date,
+                period_end=self.end_date,
+                name="Invalid Warning Threshold",
+                warning_threshold=Decimal("-10.00"),
+            )
+            budget.full_clean()
+
+        # Test warning threshold greater than critical threshold
+        with self.assertRaises(ValidationError):
+            budget = Budget(
+                user=self.user1,
+                category=self.category1,
+                amount=Decimal("500.00"),
+                period_start=self.start_date,
+                period_end=self.end_date,
+                name="Invalid Threshold Order",
+                warning_threshold=Decimal("120.00"),
+                critical_threshold=Decimal("100.00"),
+            )
+            budget.full_clean()
+
+    def test_should_trigger_warning_alert(self):
+        """Test logic for determining if warning alert should be triggered."""
+        budget = Budget.objects.create(
+            user=self.user1,
+            category=self.category1,
+            amount=Decimal("100.00"),
+            period_start=self.start_date,
+            period_end=self.end_date,
+            name="Warning Test Budget",
+            alert_enabled=True,
+            warning_threshold=Decimal("80.00"),
+        )
+
+        # Should not trigger warning when under threshold
+        Transaction.objects.create(
+            user=self.user1,
+            category=self.category1,
+            amount=Decimal("50.00"),
+            transaction_type=Transaction.EXPENSE,
+            date=self.start_date + timedelta(days=1),
+            description="Test transaction",
+        )
+        self.assertFalse(budget.should_trigger_warning_alert())
+
+        # Should trigger warning when at threshold
+        Transaction.objects.create(
+            user=self.user1,
+            category=self.category1,
+            amount=Decimal("30.00"),
+            transaction_type=Transaction.EXPENSE,
+            date=self.start_date + timedelta(days=2),
+            description="Test transaction 2",
+        )
+        self.assertTrue(budget.should_trigger_warning_alert())
+
+    def test_should_trigger_critical_alert(self):
+        """Test logic for determining if critical alert should be triggered."""
+        budget = Budget.objects.create(
+            user=self.user1,
+            category=self.category1,
+            amount=Decimal("100.00"),
+            period_start=self.start_date,
+            period_end=self.end_date,
+            name="Critical Test Budget",
+            alert_enabled=True,
+            critical_threshold=Decimal("100.00"),
+        )
+
+        # Should not trigger critical when under threshold
+        Transaction.objects.create(
+            user=self.user1,
+            category=self.category1,
+            amount=Decimal("90.00"),
+            transaction_type=Transaction.EXPENSE,
+            date=self.start_date + timedelta(days=1),
+            description="Test transaction",
+        )
+        self.assertFalse(budget.should_trigger_critical_alert())
+
+        # Should trigger critical when at threshold
+        Transaction.objects.create(
+            user=self.user1,
+            category=self.category1,
+            amount=Decimal("10.00"),
+            transaction_type=Transaction.EXPENSE,
+            date=self.start_date + timedelta(days=2),
+            description="Test transaction 2",
+        )
+        self.assertTrue(budget.should_trigger_critical_alert())
+
+    def test_alert_disabled_budget(self):
+        """Test that alerts are not triggered when disabled."""
+        budget = Budget.objects.create(
+            user=self.user1,
+            category=self.category1,
+            amount=Decimal("100.00"),
+            period_start=self.start_date,
+            period_end=self.end_date,
+            name="Disabled Alert Budget",
+            alert_enabled=False,
+            warning_threshold=Decimal("80.00"),
+        )
+
+        # Create transaction that would trigger warning
+        Transaction.objects.create(
+            user=self.user1,
+            category=self.category1,
+            amount=Decimal("90.00"),
+            transaction_type=Transaction.EXPENSE,
+            date=self.start_date + timedelta(days=1),
+            description="Test transaction",
+        )
+
+        self.assertFalse(budget.should_trigger_warning_alert())
+        self.assertFalse(budget.should_trigger_critical_alert())
+
+    def test_generate_alerts_for_budget(self):
+        """Test generation of alerts for a budget."""
+        from apps.budgets.models import BudgetAlert
+
+        budget = Budget.objects.create(
+            user=self.user1,
+            category=self.category1,
+            amount=Decimal("100.00"),
+            period_start=self.start_date,
+            period_end=self.end_date,
+            name="Alert Generation Budget",
+            alert_enabled=True,
+            warning_threshold=Decimal("80.00"),
+            critical_threshold=Decimal("100.00"),
+        )
+
+        # Create transaction that triggers warning
+        Transaction.objects.create(
+            user=self.user1,
+            category=self.category1,
+            amount=Decimal("85.00"),
+            transaction_type=Transaction.EXPENSE,
+            date=self.start_date + timedelta(days=1),
+            description="Test transaction",
+        )
+
+        # Generate alerts
+        alerts = budget.generate_alerts()
+
+        self.assertEqual(len(alerts), 1)
+        self.assertEqual(alerts[0].alert_type, BudgetAlert.WARNING)
+        self.assertEqual(alerts[0].budget, budget)
+
+    def test_prevent_duplicate_alerts(self):
+        """Test that duplicate alerts are not generated for the same threshold."""
+        from apps.budgets.models import BudgetAlert
+
+        budget = Budget.objects.create(
+            user=self.user1,
+            category=self.category1,
+            amount=Decimal("100.00"),
+            period_start=self.start_date,
+            period_end=self.end_date,
+            name="Duplicate Prevention Budget",
+            alert_enabled=True,
+            warning_threshold=Decimal("80.00"),
+        )
+
+        # Create transaction that triggers warning
+        Transaction.objects.create(
+            user=self.user1,
+            category=self.category1,
+            amount=Decimal("85.00"),
+            transaction_type=Transaction.EXPENSE,
+            date=self.start_date + timedelta(days=1),
+            description="Test transaction",
+        )
+
+        # Generate alerts first time
+        alerts1 = budget.generate_alerts()
+        self.assertEqual(len(alerts1), 1)
+
+        # Try to generate again - should not create duplicates
+        alerts2 = budget.generate_alerts()
+        self.assertEqual(len(alerts2), 0)
+
+        # Verify only one alert exists in database
+        total_alerts = BudgetAlert.objects.filter(budget=budget).count()
+        self.assertEqual(total_alerts, 1)
+
+
+class BudgetAlertModelTestCase(TestCase):
+    """Test case for BudgetAlert model."""
+
+    def setUp(self):
+        """Set up test data."""
+        self.user = UserFactory()
+        self.category = CategoryFactory(user=self.user, name="Test Category")
+
+        today = date.today()
+        self.budget = Budget.objects.create(
+            user=self.user,
+            category=self.category,
+            amount=Decimal("100.00"),
+            period_start=today.replace(day=1),
+            period_end=today.replace(day=28),
+            name="Test Budget",
+            alert_enabled=True,
+            warning_threshold=Decimal("80.00"),
+        )
+
+    def test_budget_alert_creation(self):
+        """Test basic BudgetAlert creation."""
+        from apps.budgets.models import BudgetAlert
+
+        alert = BudgetAlert.objects.create(
+            budget=self.budget,
+            alert_type=BudgetAlert.WARNING,
+            message="Budget has reached 80% of limit",
+            triggered_at_percentage=Decimal("85.00"),
+        )
+
+        self.assertEqual(alert.budget, self.budget)
+        self.assertEqual(alert.alert_type, BudgetAlert.WARNING)
+        self.assertEqual(alert.message, "Budget has reached 80% of limit")
+        self.assertEqual(alert.triggered_at_percentage, Decimal("85.00"))
+        self.assertFalse(alert.is_resolved)
+        self.assertIsNotNone(alert.created_at)
+
+    def test_budget_alert_str_representation(self):
+        """Test string representation of BudgetAlert."""
+        from apps.budgets.models import BudgetAlert
+
+        alert = BudgetAlert.objects.create(
+            budget=self.budget,
+            alert_type=BudgetAlert.CRITICAL,
+            message="Budget exceeded",
+            triggered_at_percentage=Decimal("105.00"),
+        )
+
+        expected = f"CRITICAL alert for {self.budget.name} at 105.00%"
+        self.assertEqual(str(alert), expected)
+
+    def test_alert_resolution(self):
+        """Test marking alert as resolved."""
+        from apps.budgets.models import BudgetAlert
+
+        alert = BudgetAlert.objects.create(
+            budget=self.budget,
+            alert_type=BudgetAlert.WARNING,
+            message="Test alert",
+        )
+
+        self.assertFalse(alert.is_resolved)
+        self.assertIsNone(alert.resolved_at)
+
+        alert.mark_as_resolved()
+
+        self.assertTrue(alert.is_resolved)
+        self.assertIsNotNone(alert.resolved_at)
+
+    def test_alert_unique_constraint(self):
+        """Test that only one unresolved alert per type per budget is allowed."""
+        from django.db import IntegrityError
+
+        from apps.budgets.models import BudgetAlert
+
+        # Create first warning alert
+        BudgetAlert.objects.create(
+            budget=self.budget,
+            alert_type=BudgetAlert.WARNING,
+            message="First warning",
+        )
+
+        # Try to create another unresolved warning alert for same budget
+        with self.assertRaises(IntegrityError):
+            BudgetAlert.objects.create(
+                budget=self.budget,
+                alert_type=BudgetAlert.WARNING,
+                message="Second warning",
+            )
+
+    def test_multiple_alert_types_allowed(self):
+        """Test that different alert types can coexist for same budget."""
+        from apps.budgets.models import BudgetAlert
+
+        warning_alert = BudgetAlert.objects.create(
+            budget=self.budget,
+            alert_type=BudgetAlert.WARNING,
+            message="Warning alert",
+        )
+
+        critical_alert = BudgetAlert.objects.create(
+            budget=self.budget,
+            alert_type=BudgetAlert.CRITICAL,
+            message="Critical alert",
+        )
+
+        self.assertNotEqual(warning_alert.alert_type, critical_alert.alert_type)
+        self.assertEqual(BudgetAlert.objects.filter(budget=self.budget).count(), 2)
+
+    def test_get_active_alerts_for_budget(self):
+        """Test getting active (unresolved) alerts for a budget."""
+        from apps.budgets.models import BudgetAlert
+
+        # Create active alert
+        active_alert = BudgetAlert.objects.create(
+            budget=self.budget,
+            alert_type=BudgetAlert.WARNING,
+            message="Active alert",
+        )
+
+        # Create resolved alert
+        resolved_alert = BudgetAlert.objects.create(
+            budget=self.budget,
+            alert_type=BudgetAlert.CRITICAL,
+            message="Resolved alert",
+            is_resolved=True,
+        )
+
+        active_alerts = BudgetAlert.get_active_alerts_for_budget(self.budget)
+
+        self.assertEqual(active_alerts.count(), 1)
+        self.assertIn(active_alert, active_alerts)
+        self.assertNotIn(resolved_alert, active_alerts)
+
+    def test_get_alerts_for_user(self):
+        """Test getting alerts for a specific user."""
+        from apps.budgets.models import BudgetAlert
+
+        # Create alert for user1
+        alert1 = BudgetAlert.objects.create(
+            budget=self.budget,
+            alert_type=BudgetAlert.WARNING,
+            message="User1 alert",
+        )
+
+        # Create budget and alert for different user
+        user2 = UserFactory()
+        category2 = CategoryFactory(user=user2, name="User2 Category")
+        budget2 = Budget.objects.create(
+            user=user2,
+            category=category2,
+            amount=Decimal("200.00"),
+            period_start=date.today().replace(day=1),
+            period_end=date.today().replace(day=28),
+            name="User2 Budget",
+        )
+        BudgetAlert.objects.create(
+            budget=budget2,
+            alert_type=BudgetAlert.CRITICAL,
+            message="User2 alert",
+        )
+
+        user_alerts = BudgetAlert.get_alerts_for_user(self.user)
+
+        self.assertEqual(user_alerts.count(), 1)
+        self.assertIn(alert1, user_alerts)

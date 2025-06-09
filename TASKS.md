@@ -183,12 +183,12 @@ This document serves as the master task list for the Personal Finance Dashboard 
   - [x] Calculate spent amounts dynamically
   - [x] Test budget calculations
 
-- [ ] **3.1.2** Budget alerts
-  - [ ] Write tests for alert logic
-  - [ ] Add alert threshold fields
-  - [ ] Implement alert generation logic
-  - [ ] Create notification system
-  - [ ] Test alert triggering
+- [x] **3.1.2** Budget alerts
+  - [x] Write tests for alert logic
+  - [x] Add alert threshold fields
+  - [x] Implement alert generation logic
+  - [x] Create notification system
+  - [x] Test alert triggering
 
 ### 3.2 Budget API
 
