@@ -84,9 +84,7 @@ def check_budget_alerts(self) -> dict:
     except Exception as exc:
         logger.error(f"Budget alert check task failed: {exc}")
         # Retry with exponential backoff
-        raise self.retry(
-            exc=exc, countdown=60 * (2**self.request.retries)
-        )
+        raise self.retry(exc=exc, countdown=60 * (2**self.request.retries))
 
 
 @shared_task(bind=True, max_retries=3)
@@ -204,8 +202,7 @@ def process_budget_alert_for_transaction(transaction_id: int) -> bool:
 
     except Exception as e:
         logger.error(
-            f"Failed to process budget alerts for "
-            f"transaction {transaction_id}: {e}"
+            f"Failed to process budget alerts for " f"transaction {transaction_id}: {e}"
         )
         return False
 
@@ -238,15 +235,9 @@ def resolve_outdated_alerts() -> dict:
 
             should_resolve = False
 
-            if (
-                alert.alert_type == BudgetAlert.WARNING
-                and not should_have_warning
-            ):
+            if alert.alert_type == BudgetAlert.WARNING and not should_have_warning:
                 should_resolve = True
-            elif (
-                alert.alert_type == BudgetAlert.CRITICAL
-                and not should_have_critical
-            ):
+            elif alert.alert_type == BudgetAlert.CRITICAL and not should_have_critical:
                 should_resolve = True
 
             if should_resolve:
