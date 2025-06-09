@@ -47,6 +47,7 @@ class TransactionSerializer(serializers.ModelSerializer):
         allow_null=True,
     )
     amount = serializers.DecimalField(max_digits=10, decimal_places=2)
+    formatted_amount = serializers.SerializerMethodField()
 
     class Meta:
         model = Transaction
@@ -54,6 +55,7 @@ class TransactionSerializer(serializers.ModelSerializer):
             "id",
             "transaction_type",
             "amount",
+            "formatted_amount",
             "category",
             "category_id",
             "description",
@@ -89,6 +91,20 @@ class TransactionSerializer(serializers.ModelSerializer):
             self.fields["parent_transaction"].queryset = Transaction.objects.filter(
                 user=request.user
             )
+
+    def validate_amount(self, value):
+        """Validate amount field."""
+        # Check if the string representation has more than 2 decimal places
+        str_value = str(value)
+        if "." in str_value:
+            decimal_part = str_value.split(".")[1]
+            # Remove trailing zeros to handle cases like "10.100"
+            decimal_part = decimal_part.rstrip("0")
+            if len(decimal_part) > 2:
+                raise serializers.ValidationError(
+                    "Amount must have no more than 2 decimal places."
+                )
+        return value
 
     def validate(self, data):
         """Validate transaction data."""
@@ -162,6 +178,34 @@ class TransactionSerializer(serializers.ModelSerializer):
 
         return data
 
+    def get_formatted_amount(self, obj):
+        """Return formatted amount with currency symbol."""
+        if obj.amount is None:
+            return None
+
+        # Currency symbols mapping
+        currency_symbols = {
+            "USD": "$",
+            "EUR": "€",
+            "GBP": "£",
+            "JPY": "¥",
+            "CNY": "¥",
+            "CHF": "Fr.",
+            "CAD": "C$",
+            "AUD": "A$",
+            "INR": "₹",
+        }
+
+        # Get user's currency preference (default to USD)
+        currency = obj.user.currency if hasattr(obj.user, "currency") else "USD"
+        symbol = currency_symbols.get(currency, "$")
+
+        # Format amount with thousands separator
+        amount_str = f"{obj.amount:,.2f}"
+
+        # Return formatted amount with symbol
+        return f"{symbol}{amount_str}"
+
     def create(self, validated_data):
         """Create transaction with current user."""
         validated_data["user"] = self.context["request"].user
@@ -171,14 +215,20 @@ class TransactionSerializer(serializers.ModelSerializer):
 class TransactionBulkCreateSerializer(serializers.Serializer):
     """Serializer for bulk creating transactions."""
 
-    transactions = TransactionSerializer(many=True)
+    transactions = serializers.ListField(
+        child=TransactionSerializer(),
+        allow_empty=False,
+    )
 
     def __init__(self, *args, **kwargs):
         """Initialize with context passed to child serializers."""
         super().__init__(*args, **kwargs)
         # Pass context to the nested serializer
-        if hasattr(self, "fields") and "transactions" in self.fields:
-            self.fields["transactions"].child.context = self.context
+        request = self.context.get("request") if self.context else None
+        if request:
+            self.fields["transactions"].child = TransactionSerializer(
+                context=self.context
+            )
 
     def create(self, validated_data):
         """Create transactions one by one to ensure proper validation."""

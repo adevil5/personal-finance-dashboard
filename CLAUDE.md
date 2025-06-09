@@ -132,11 +132,23 @@ npm run typecheck
 - Data masking utilities in core.security.masking for non-prod environments
 - Complete audit trail requirements for compliance
 
+#### PII Field Patterns
+- Transaction amounts: `EncryptedDecimalField` with `amount_index` for filtering/sorting
+- Merchant/notes: `EncryptedCharField` with searchable indexes where needed
+- User isolation: Always filter querysets by `user=request.user` in serializers
+
 ### API Structure
 - RESTful API under `/api/v1/`
 - Authentication via Django REST Framework Token Auth
 - ViewSets for all major resources
 - Pagination, filtering, and sorting support
+
+#### Transaction API Patterns
+- Dual-field amount filtering: `amount_min/max` for ranges, `amount_index` for sorting
+- Currency formatting via `formatted_amount` SerializerMethodField
+- Nested category serialization (read-only) with write-only `category_id`
+- Bulk operations via dedicated serializers with proper context passing
+- Custom decimal validation: max 2 decimal places via `validate_amount`
 
 ### Testing Strategy
 - TDD approach is mandatory
@@ -145,12 +157,22 @@ npm run typecheck
 - Performance tests for API endpoints
 - Security tests for PII handling
 
+#### Serializer Testing Patterns
+- Test both serialization and deserialization
+- Validate all field constraints (decimal places, required fields, etc.)
+- Test user isolation in querysets
+- Test currency formatting with different currencies
+- Use `APIRequestFactory` for request context in serializer tests
+
 ### Key Files to Check
 - `config/settings/base.py` - Core Django settings
 - `docker-compose.yml` - Local development setup
 - `pytest.ini` - Test configuration
 - `.pre-commit-config.yaml` - Code quality hooks
 - `apps/core/security/` - PII encryption and masking utilities
+- `apps/expenses/serializers.py` - Transaction serialization patterns
+- `tests/expenses/test_serializers.py` - Comprehensive serializer test examples
 
 ## Development Notes
+
 - Use uv (not standard pip) to manage python packages in this project

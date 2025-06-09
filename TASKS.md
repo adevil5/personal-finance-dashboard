@@ -158,12 +158,12 @@ This document serves as the master task list for the Personal Finance Dashboard 
   - [x] Add pagination and sorting
   - [x] Test API endpoints thoroughly
 
-- [ ] **2.2.2** Transaction serializers
-  - [ ] Write tests for serialization/deserialization
-  - [ ] Create TransactionSerializer with validation
-  - [ ] Handle currency formatting
-  - [ ] Add nested category serialization
-  - [ ] Test all field validations
+- [x] **2.2.2** Transaction serializers
+  - [x] Write tests for serialization/deserialization
+  - [x] Create TransactionSerializer with validation
+  - [x] Handle currency formatting
+  - [x] Add nested category serialization
+  - [x] Test all field validations
 
 - [ ] **2.2.3** Bulk operations
   - [ ] Write tests for bulk import
