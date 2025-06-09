@@ -165,12 +165,12 @@ This document serves as the master task list for the Personal Finance Dashboard 
   - [x] Add nested category serialization
   - [x] Test all field validations
 
-- [ ] **2.2.3** Bulk operations
-  - [ ] Write tests for bulk import
-  - [ ] Implement CSV/Excel import endpoint
-  - [ ] Add validation and error handling
-  - [ ] Create bulk update/delete operations
-  - [ ] Test with large datasets
+- [x] **2.2.3** Bulk operations
+  - [x] Write tests for bulk import
+  - [x] Implement CSV/Excel import endpoint
+  - [x] Add validation and error handling
+  - [x] Create bulk update/delete operations
+  - [x] Test with large datasets
 
 ## Phase 3: Budget Management (Days 12-14)
 

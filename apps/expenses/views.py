@@ -6,8 +6,14 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from .models import Transaction
-from .serializers import TransactionSerializer, TransactionStatisticsSerializer
+from .models import Category, Transaction
+from .serializers import (
+    TransactionBulkDeleteSerializer,
+    TransactionBulkUpdateSerializer,
+    TransactionCSVImportSerializer,
+    TransactionSerializer,
+    TransactionStatisticsSerializer,
+)
 
 
 class TransactionFilter(filters.FilterSet):
@@ -148,3 +154,185 @@ class TransactionViewSet(viewsets.ModelViewSet):
 
         serializer = TransactionStatisticsSerializer(data)
         return Response(serializer.data)
+
+    @action(detail=False, methods=["post"], url_path="import-csv")
+    def import_csv(self, request):
+        """Import transactions from CSV/Excel file."""
+        import csv
+        import io
+        from decimal import Decimal, InvalidOperation
+
+        serializer = TransactionCSVImportSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        uploaded_file = serializer.validated_data["file"]
+
+        try:
+            # Handle different file types
+            if uploaded_file.name.lower().endswith(".csv"):
+                # CSV file handling
+                file_content = uploaded_file.read().decode("utf-8")
+                csv_reader = csv.DictReader(io.StringIO(file_content))
+            elif uploaded_file.name.lower().endswith((".xlsx", ".xls")):
+                # Excel file handling
+                import openpyxl
+
+                workbook = openpyxl.load_workbook(uploaded_file)
+                sheet = workbook.active
+
+                # Get headers from first row
+                headers = [cell.value for cell in sheet[1]]
+                csv_reader = []
+
+                # Convert Excel rows to dictionary format
+                for row in sheet.iter_rows(min_row=2, values_only=True):
+                    row_dict = dict(zip(headers, row))
+                    csv_reader.append(row_dict)
+
+            imported_count = 0
+            errors = []
+
+            for row_number, row in enumerate(csv_reader, start=2):
+                try:
+                    # Clean and prepare data
+                    transaction_data = {}
+
+                    # Required fields
+                    if row.get("date"):
+                        from datetime import datetime
+
+                        if isinstance(row["date"], str):
+                            transaction_data["date"] = datetime.strptime(
+                                row["date"], "%Y-%m-%d"
+                            ).date()
+                        else:
+                            transaction_data["date"] = row["date"]
+
+                    if row.get("amount"):
+                        try:
+                            transaction_data["amount"] = Decimal(str(row["amount"]))
+                        except (InvalidOperation, ValueError):
+                            raise ValueError(f"Invalid amount: {row['amount']}")
+
+                    transaction_data["description"] = row.get("description", "")
+                    transaction_data["transaction_type"] = row.get(
+                        "transaction_type", "expense"
+                    )
+                    transaction_data["merchant"] = row.get("merchant", "")
+                    transaction_data["notes"] = row.get("notes", "")
+
+                    # Handle category by name
+                    category_name = row.get("category_name", "").strip()
+                    if (
+                        category_name
+                        and transaction_data["transaction_type"] == "expense"
+                    ):
+                        try:
+                            category = Category.objects.get(
+                                user=request.user, name=category_name, is_active=True
+                            )
+                            transaction_data["category_id"] = category.id
+                        except Category.DoesNotExist:
+                            raise ValueError(f"Category '{category_name}' not found")
+
+                    # Validate using serializer
+                    transaction_serializer = TransactionSerializer(
+                        data=transaction_data, context={"request": request}
+                    )
+                    transaction_serializer.is_valid(raise_exception=True)
+                    transaction_serializer.save()
+                    imported_count += 1
+
+                except Exception as e:
+                    errors.append(
+                        {
+                            "row": row_number,
+                            "error": str(e),
+                            "data": dict(row) if hasattr(row, "items") else row,
+                        }
+                    )
+
+            # Return response based on results
+            if errors and imported_count == 0:
+                return Response(
+                    {"errors": errors, "imported_count": 0},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            elif errors:
+                return Response(
+                    {"imported_count": imported_count, "errors": errors},
+                    status=status.HTTP_207_MULTI_STATUS,
+                )
+            else:
+                return Response(
+                    {"imported_count": imported_count}, status=status.HTTP_201_CREATED
+                )
+
+        except Exception as e:
+            return Response(
+                {"error": f"File processing error: {str(e)}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+    @action(detail=False, methods=["post"], url_path="import-excel")
+    def import_excel(self, request):
+        """Import transactions from Excel file specifically."""
+        # Reuse the CSV import method since it handles Excel files
+        return self.import_csv(request)
+
+    @action(detail=False, methods=["patch"], url_path="bulk-update")
+    def bulk_update(self, request):
+        """Bulk update multiple transactions."""
+        serializer = TransactionBulkUpdateSerializer(
+            data=request.data, context={"request": request}
+        )
+        serializer.is_valid(raise_exception=True)
+
+        updates = serializer.validated_data["updates"]
+        updated_count = 0
+        errors = []
+
+        for update_data in updates:
+            transaction_id = update_data.pop("id")
+            try:
+                transaction = Transaction.objects.get(
+                    id=transaction_id, user=request.user, is_active=True
+                )
+
+                # Update fields
+                for field, value in update_data.items():
+                    if field == "category_id":
+                        transaction.category = value
+                    else:
+                        setattr(transaction, field, value)
+
+                transaction.save()
+                updated_count += 1
+
+            except Transaction.DoesNotExist:
+                errors.append(
+                    {"transaction_id": transaction_id, "error": "Transaction not found"}
+                )
+            except Exception as e:
+                errors.append({"transaction_id": transaction_id, "error": str(e)})
+
+        response_data = {"updated_count": updated_count}
+        if errors:
+            response_data["errors"] = errors
+
+        return Response(response_data, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=["delete"], url_path="bulk-delete")
+    def bulk_delete(self, request):
+        """Bulk delete (soft delete) multiple transactions."""
+        serializer = TransactionBulkDeleteSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        transaction_ids = serializer.validated_data["transaction_ids"]
+
+        # Only delete user's own transactions
+        deleted_count = Transaction.objects.filter(
+            id__in=transaction_ids, user=request.user, is_active=True
+        ).update(is_active=False)
+
+        return Response({"deleted_count": deleted_count}, status=status.HTTP_200_OK)

@@ -258,3 +258,92 @@ class TransactionStatisticsSerializer(serializers.Serializer):
     )
     date_from = serializers.DateField(required=False)
     date_to = serializers.DateField(required=False)
+
+
+class TransactionCSVImportSerializer(serializers.Serializer):
+    """Serializer for CSV/Excel transaction import."""
+
+    file = serializers.FileField()
+
+    def validate_file(self, value):
+        """Validate uploaded file."""
+        if not value.name.lower().endswith((".csv", ".xlsx", ".xls")):
+            raise serializers.ValidationError("Only CSV and Excel files are supported.")
+
+        # Check file size (max 10MB)
+        if value.size > 10 * 1024 * 1024:
+            raise serializers.ValidationError("File size cannot exceed 10MB.")
+
+        return value
+
+
+class TransactionBulkUpdateItemSerializer(serializers.Serializer):
+    """Serializer for individual transaction bulk update."""
+
+    id = serializers.IntegerField()
+    transaction_type = serializers.ChoiceField(
+        choices=Transaction.TRANSACTION_TYPE_CHOICES, required=False
+    )
+    amount = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
+    category_id = serializers.PrimaryKeyRelatedField(
+        queryset=Category.objects.none(), required=False, allow_null=True
+    )
+    description = serializers.CharField(max_length=255, required=False)
+    notes = serializers.CharField(required=False, allow_blank=True)
+    merchant = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    date = serializers.DateField(required=False)
+
+    def __init__(self, *args, **kwargs):
+        """Initialize with user-specific querysets."""
+        super().__init__(*args, **kwargs)
+        request = self.context.get("request")
+        if request and hasattr(request, "user"):
+            self.fields["category_id"].queryset = Category.objects.filter(
+                user=request.user, is_active=True
+            )
+
+    def validate_amount(self, value):
+        """Validate amount field."""
+        if value is not None:
+            # Check if the string representation has more than 2 decimal places
+            str_value = str(value)
+            if "." in str_value:
+                decimal_part = str_value.split(".")[1]
+                # Remove trailing zeros to handle cases like "10.100"
+                decimal_part = decimal_part.rstrip("0")
+                if len(decimal_part) > 2:
+                    raise serializers.ValidationError(
+                        "Amount must have no more than 2 decimal places."
+                    )
+
+            if value <= 0:
+                raise serializers.ValidationError("Amount must be greater than zero.")
+        return value
+
+
+class TransactionBulkUpdateSerializer(serializers.Serializer):
+    """Serializer for bulk updating transactions."""
+
+    updates = serializers.ListField(
+        child=TransactionBulkUpdateItemSerializer(),
+        allow_empty=False,
+    )
+
+    def __init__(self, *args, **kwargs):
+        """Initialize with context passed to child serializers."""
+        super().__init__(*args, **kwargs)
+        # Pass context to the nested serializer
+        request = self.context.get("request") if self.context else None
+        if request:
+            self.fields["updates"].child = TransactionBulkUpdateItemSerializer(
+                context=self.context
+            )
+
+
+class TransactionBulkDeleteSerializer(serializers.Serializer):
+    """Serializer for bulk deleting transactions."""
+
+    transaction_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        allow_empty=False,
+    )

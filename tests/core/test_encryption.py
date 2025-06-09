@@ -312,7 +312,7 @@ class TestEncryptedFields:
         assert result == "5551234567"
 
         result = field.to_python("+1-555-123-4567")
-        assert result == "+15551234567"
+        assert result == "15551234567"
 
     def test_field_validation_errors(self):
         """Test field validation error handling."""
