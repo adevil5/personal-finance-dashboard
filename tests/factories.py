@@ -64,3 +64,22 @@ class TransactionFactory(DjangoModelFactory):
     date = factory.LazyFunction(lambda: timezone.now().date())
     merchant = factory.Faker("company")
     is_active = True
+
+
+class BudgetFactory(DjangoModelFactory):
+    """Factory for creating Budget instances."""
+
+    class Meta:
+        model = "budgets.Budget"
+
+    user = factory.SubFactory(UserFactory)
+    category = factory.SubFactory(CategoryFactory)
+    name = factory.Faker("sentence", nb_words=3)
+    amount = factory.LazyFunction(lambda: Decimal("500.00"))
+    period_start = factory.LazyFunction(
+        lambda: timezone.now().date().replace(day=1)
+    )  # First day of current month
+    period_end = factory.LazyFunction(
+        lambda: timezone.now().date().replace(day=28)
+    )  # Near end of current month
+    is_active = True

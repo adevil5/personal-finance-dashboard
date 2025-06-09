@@ -176,12 +176,12 @@ This document serves as the master task list for the Personal Finance Dashboard 
 
 ### 3.1 Budget Models
 
-- [ ] **3.1.1** Budget model
-  - [ ] Write tests for Budget model
-  - [ ] Implement Budget with category and amount
-  - [ ] Add period fields (start/end dates)
-  - [ ] Calculate spent amounts dynamically
-  - [ ] Test budget calculations
+- [x] **3.1.1** Budget model
+  - [x] Write tests for Budget model
+  - [x] Implement Budget with category and amount
+  - [x] Add period fields (start/end dates)
+  - [x] Calculate spent amounts dynamically
+  - [x] Test budget calculations
 
 - [ ] **3.1.2** Budget alerts
   - [ ] Write tests for alert logic
