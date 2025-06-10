@@ -168,11 +168,26 @@ npm run typecheck
 - Test currency formatting with different currencies
 - Use `APIRequestFactory` for request context in serializer tests
 
+#### Django Validation Error Handling
+- Model validation errors in `create()` must be caught and converted to DRF ValidationError
+- Use `try/except ValidationError` around `super().create()` in serializers
+- Convert Django `message_dict` to DRF format for proper API error responses
+- Check `field == "__all__"` for non-field errors and provide user-friendly messages
+
 #### Budget Management Patterns
 - Budget alerts with configurable threshold monitoring (warning/critical percentages)
 - Dynamic spent amount calculations using aggregated transactions
 - Period-based budget tracking with date range validation
 - Alert notifications integrated with Celery for background processing
+
+#### Budget API Patterns
+- Calculated fields: `spent_amount`, `remaining_amount`, `utilization_percentage`, `is_over_budget`
+- Period-based filtering with `period_start_after/before` and `period_end_after/before`
+- Statistics endpoint for aggregate budget analytics across user's budgets
+- Current budgets endpoint for active period filtering via classmethods
+- Django Filters integration for category and date range filtering
+- User-scoped queries with proper security isolation in ViewSet
+- Soft delete pattern using `is_active=False` in `perform_destroy`
 
 ### Key Files to Check
 - `config/settings/base.py` - Core Django settings
@@ -182,7 +197,10 @@ npm run typecheck
 - `apps/core/security/` - PII encryption and masking utilities
 - `apps/expenses/serializers.py` - Transaction serialization patterns
 - `apps/budgets/models.py` - Budget model with alert configurations
+- `apps/budgets/serializers.py` - Budget API serialization with calculated fields
+- `apps/budgets/views.py` - Budget ViewSet with statistics and filtering
 - `tests/expenses/test_serializers.py` - Comprehensive serializer test examples
+- `tests/budgets/test_views.py` - Budget ViewSet test patterns and CRUD operations
 
 ## Development Notes
 
