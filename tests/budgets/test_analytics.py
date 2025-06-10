@@ -61,7 +61,7 @@ class TestBudgetAnalytics:
     def test_budget_performance_metrics_basic(self):
         """Test basic budget performance metrics calculation."""
         # Create current month budget
-        BudgetFactory(
+        budget = BudgetFactory(
             user=self.user,
             category=self.food_category,
             name="Food Budget",
@@ -143,7 +143,7 @@ class TestBudgetAnalytics:
     def test_multi_period_budget_comparison(self):
         """Test budget performance comparison across multiple periods."""
         # Create budgets for different periods
-        BudgetFactory(
+        current_budget = BudgetFactory(
             user=self.user,
             category=self.food_category,
             name="Current Food Budget",
@@ -152,7 +152,7 @@ class TestBudgetAnalytics:
             period_end=self.current_month_end,
         )
 
-        BudgetFactory(
+        prev_budget = BudgetFactory(
             user=self.user,
             category=self.food_category,
             name="Previous Food Budget",
@@ -190,7 +190,7 @@ class TestBudgetAnalytics:
     def test_category_based_budget_analytics(self):
         """Test analytics for category-specific budgets."""
         # Create budgets for different categories
-        BudgetFactory(
+        food_budget = BudgetFactory(
             user=self.user,
             category=self.food_category,
             name="Food Budget",
@@ -199,7 +199,7 @@ class TestBudgetAnalytics:
             period_end=self.current_month_end,
         )
 
-        BudgetFactory(
+        transport_budget = BudgetFactory(
             user=self.user,
             category=self.transport_category,
             name="Transport Budget",
@@ -528,7 +528,7 @@ class TestBudgetAnalyticsAPI:
             period_end=self.current_month_end,
         )
 
-        transport_budget = BudgetFactory(
+        BudgetFactory(
             user=self.user,
             category=self.transport_category,
             name="Transport Budget",
@@ -579,7 +579,7 @@ class TestBudgetAnalyticsAPI:
     def test_budget_statistics_with_over_budget(self):
         """Test statistics calculation when some budgets are over limit."""
         # Create budget that will be exceeded
-        budget = BudgetFactory(
+        BudgetFactory(
             user=self.user,
             category=self.food_category,
             name="Small Budget",
@@ -613,7 +613,7 @@ class TestBudgetAnalyticsAPI:
     def test_budget_statistics_with_period_filter(self):
         """Test statistics endpoint with period filtering."""
         # Create budget for current month
-        current_budget = BudgetFactory(
+        BudgetFactory(
             user=self.user,
             category=self.food_category,
             name="Current Budget",
@@ -626,7 +626,7 @@ class TestBudgetAnalyticsAPI:
         prev_month_end = self.current_month_start - timedelta(days=1)
         prev_month_start = prev_month_end.replace(day=1)
 
-        prev_budget = BudgetFactory(
+        BudgetFactory(
             user=self.user,
             category=self.food_category,
             name="Previous Budget",
@@ -681,7 +681,7 @@ class TestBudgetAnalyticsAPI:
 
     def test_budget_list_includes_analytics_fields(self):
         """Test that budget list endpoint includes analytics fields."""
-        budget = BudgetFactory(
+        BudgetFactory(
             user=self.user,
             category=self.food_category,
             name="Food Budget",
@@ -778,7 +778,7 @@ class TestBudgetAnalyticsEndpoints:
     def test_budget_analytics_endpoint_basic(self):
         """Test basic analytics endpoint functionality."""
         # Create budget
-        budget = BudgetFactory(
+        BudgetFactory(
             user=self.user,
             category=self.food_category,
             name="Food Budget",
@@ -812,7 +812,7 @@ class TestBudgetAnalyticsEndpoints:
     def test_budget_analytics_with_previous_comparison(self):
         """Test analytics endpoint with previous period comparison."""
         # Create current period budget
-        current_budget = BudgetFactory(
+        BudgetFactory(
             user=self.user,
             category=self.food_category,
             name="Current Food Budget",
@@ -825,7 +825,7 @@ class TestBudgetAnalyticsEndpoints:
         prev_month_end = self.current_month_start - timedelta(days=1)
         prev_month_start = prev_month_end.replace(day=1)
 
-        prev_budget = BudgetFactory(
+        BudgetFactory(
             user=self.user,
             category=self.food_category,
             name="Previous Food Budget",
@@ -878,7 +878,7 @@ class TestBudgetAnalyticsEndpoints:
     def test_budget_analytics_with_category_breakdown(self):
         """Test analytics endpoint with category breakdown."""
         # Create budgets for different categories
-        food_budget = BudgetFactory(
+        BudgetFactory(
             user=self.user,
             category=self.food_category,
             name="Food Budget",
@@ -887,7 +887,7 @@ class TestBudgetAnalyticsEndpoints:
             period_end=self.current_month_end,
         )
 
-        transport_budget = BudgetFactory(
+        BudgetFactory(
             user=self.user,
             category=self.transport_category,
             name="Transport Budget",
@@ -997,7 +997,7 @@ class TestBudgetAnalyticsEndpoints:
     def test_budget_trends_endpoint(self):
         """Test budget trends endpoint."""
         # Create budgets for current month
-        current_budget = BudgetFactory(
+        BudgetFactory(
             user=self.user,
             category=self.food_category,
             name="Current Budget",
@@ -1048,7 +1048,7 @@ class TestBudgetAnalyticsEndpoints:
     def test_budget_trends_with_category_filter(self):
         """Test budget trends endpoint with category filtering."""
         # Create budgets for different categories
-        food_budget = BudgetFactory(
+        BudgetFactory(
             user=self.user,
             category=self.food_category,
             name="Food Budget",
@@ -1057,7 +1057,7 @@ class TestBudgetAnalyticsEndpoints:
             period_end=self.current_month_end,
         )
 
-        transport_budget = BudgetFactory(
+        BudgetFactory(
             user=self.user,
             category=self.transport_category,
             name="Transport Budget",

@@ -64,7 +64,8 @@ def check_budget_alerts(self) -> dict:
                         )
                     )
                     logger.info(
-                        f"Sent {notification_count} notifications for budget {budget.name}"
+                        f"Sent {notification_count} notifications for "
+                        f"budget {budget.name}"
                     )
 
             except Exception as e:
@@ -165,7 +166,8 @@ def process_budget_alert_for_transaction(transaction_id: int) -> bool:
             period_start__lte=transaction.date,
             period_end__gte=transaction.date,
         ).filter(
-            # Either budget is for the specific category or is an overall budget (no category)
+            # Either budget is for the specific category or is an overall budget
+            # (no category)
             models.Q(category=transaction.category)
             | models.Q(category__isnull=True)
         )
