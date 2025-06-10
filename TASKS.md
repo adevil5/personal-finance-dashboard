@@ -192,12 +192,12 @@ This document serves as the master task list for the Personal Finance Dashboard 
 
 ### 3.2 Budget API
 
-- [ ] **3.2.1** Budget ViewSet
-  - [ ] Write tests for budget CRUD operations
-  - [ ] Implement BudgetViewSet
-  - [ ] Add budget vs actual calculations
-  - [ ] Implement period-based filtering
-  - [ ] Test all endpoints
+- [x] **3.2.1** Budget ViewSet
+  - [x] Write tests for budget CRUD operations
+  - [x] Implement BudgetViewSet
+  - [x] Add budget vs actual calculations
+  - [x] Implement period-based filtering
+  - [x] Test all endpoints
 
 - [ ] **3.2.2** Budget analytics
   - [ ] Write tests for budget performance metrics
