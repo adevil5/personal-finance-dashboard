@@ -241,12 +241,12 @@ This document serves as the master task list for the Personal Finance Dashboard 
   - [x] Calculate averages and totals
   - [x] Test with various data scenarios
 
-- [ ] **5.1.2** Report generation
-  - [ ] Write tests for report formats
-  - [ ] Implement PDF report generation
-  - [ ] Add Excel export functionality
-  - [ ] Create report templates
-  - [ ] Test report accuracy
+- [x] **5.1.2** Report generation
+  - [x] Write tests for report formats
+  - [x] Implement PDF report generation
+  - [x] Add Excel export functionality
+  - [x] Create report templates
+  - [x] Test report accuracy
 
 ### 5.2 Analytics API
 
