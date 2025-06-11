@@ -223,12 +223,12 @@ This document serves as the master task list for the Personal Finance Dashboard 
   - [x] Add PII redaction for receipts
   - [x] Test PII detection accuracy
 
-- [ ] **4.1.3** Secure file storage
-  - [ ] Write tests for file storage
-  - [ ] Implement S3 storage with KMS encryption
-  - [ ] Add pre-signed URL generation
-  - [ ] Implement file cleanup policies
-  - [ ] Test storage security
+- [x] **4.1.3** Secure file storage
+  - [x] Write tests for file storage
+  - [x] Implement S3 storage with KMS encryption
+  - [x] Add pre-signed URL generation
+  - [x] Implement file cleanup policies
+  - [x] Test storage security
 
 ## Phase 5: Analytics & Reporting (Days 17-19)
 

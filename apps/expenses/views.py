@@ -6,6 +6,8 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from django.http import Http404
+
 from .models import Category, Transaction
 from .serializers import (
     TransactionBulkDeleteSerializer,
@@ -14,6 +16,7 @@ from .serializers import (
     TransactionSerializer,
     TransactionStatisticsSerializer,
 )
+from .utils import get_user_receipt_url, get_user_storage_usage
 
 
 class TransactionFilter(filters.FilterSet):
@@ -336,3 +339,79 @@ class TransactionViewSet(viewsets.ModelViewSet):
         ).update(is_active=False)
 
         return Response({"deleted_count": deleted_count}, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=["get"], url_path="receipt-url")
+    def get_receipt_url(self, request, pk=None):
+        """
+        Get a secure pre-signed URL for accessing transaction receipt.
+
+        Args:
+            expires_in (int): Optional URL expiration time in seconds (default: 3600)
+
+        Returns:
+            Response with pre-signed URL or error message
+        """
+        try:
+            # Get expiration time from query params (default 1 hour)
+            expires_in = int(request.query_params.get("expires_in", 3600))
+
+            # Validate expiration time (max 24 hours)
+            if expires_in > 86400:  # 24 hours
+                expires_in = 86400
+            elif expires_in < 60:  # Minimum 1 minute
+                expires_in = 60
+
+            # Get secure URL for the receipt
+            url = get_user_receipt_url(pk, request.user, expires_in)
+
+            if url:
+                return Response(
+                    {
+                        "receipt_url": url,
+                        "expires_in": expires_in,
+                        "transaction_id": pk,
+                    },
+                    status=status.HTTP_200_OK,
+                )
+            else:
+                return Response(
+                    {"error": "No receipt found for this transaction"},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+
+        except Http404:
+            return Response(
+                {"error": "Transaction not found"}, status=status.HTTP_404_NOT_FOUND
+            )
+        except ValueError as e:
+            return Response(
+                {"error": f"Invalid parameter: {str(e)}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except Exception as e:
+            return Response(
+                {"error": f"Failed to generate receipt URL: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    @action(detail=False, methods=["get"], url_path="storage-usage")
+    def get_storage_usage(self, request):
+        """
+        Get storage usage statistics for the current user.
+
+        Returns:
+            Response with storage usage information
+        """
+        try:
+            usage_stats = get_user_storage_usage(request.user)
+
+            return Response(
+                {"user_id": request.user.id, "storage_usage": usage_stats},
+                status=status.HTTP_200_OK,
+            )
+
+        except Exception as e:
+            return Response(
+                {"error": f"Failed to get storage usage: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )

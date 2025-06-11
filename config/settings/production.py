@@ -45,12 +45,17 @@ AWS_S3_OBJECT_PARAMETERS = {
 AWS_DEFAULT_ACL = None
 AWS_S3_ENCRYPTION = "aws:kms"
 AWS_S3_FILE_OVERWRITE = False
+AWS_S3_KMS_KEY_ID = get_env_variable("AWS_S3_KMS_KEY_ID", "alias/aws/s3")
+
+# File storage security settings
+FILE_RETENTION_DAYS = int(get_env_variable("FILE_RETENTION_DAYS", "365"))
+CLEANUP_BATCH_SIZE = int(get_env_variable("CLEANUP_BATCH_SIZE", "1000"))
 
 # Static files configuration
 if AWS_STORAGE_BUCKET_NAME:
     STATICFILES_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
     STATIC_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/static/"
-    DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
+    DEFAULT_FILE_STORAGE = "apps.expenses.storage.SecureS3Storage"
     MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/media/"
 
 # Email configuration

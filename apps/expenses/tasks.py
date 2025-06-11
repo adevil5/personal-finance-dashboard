@@ -1,9 +1,11 @@
 """
 Celery tasks for expense management.
 
-Handles automated recurring transaction generation and other asynchronous operations.
+Handles automated recurring transaction generation, file cleanup,
+and other asynchronous operations.
 """
 
+import logging
 from datetime import date, timedelta
 
 from celery import shared_task
@@ -12,8 +14,10 @@ from django.contrib.auth import get_user_model
 from django.db import transaction as db_transaction
 
 from apps.expenses.models import Transaction
+from apps.expenses.storage import get_storage_backend
 
 User = get_user_model()
+logger = logging.getLogger(__name__)
 
 
 @shared_task(bind=True, max_retries=3)
@@ -223,6 +227,216 @@ def validate_recurring_transactions() -> dict:
 # These would be configured in celery beat schedule
 
 
+@shared_task(bind=True)
+def cleanup_orphaned_files(self) -> dict:
+    """
+    Clean up files that are not referenced by any active transaction.
+
+    Returns:
+        Dictionary with cleanup statistics
+    """
+    try:
+        # Get storage backend
+        storage = get_storage_backend()
+
+        logger.info("Starting orphaned files cleanup task")
+        deleted_count = storage.cleanup_orphaned_files(dry_run=False)
+
+        stats = {"success": True, "deleted_count": deleted_count, "error": None}
+
+        logger.info(f"Orphaned files cleanup completed. Deleted {deleted_count} files")
+        return stats
+
+    except Exception as exc:
+        logger.error(f"Orphaned files cleanup failed: {exc}")
+        stats = {"success": False, "deleted_count": 0, "error": str(exc)}
+        return stats
+
+
+@shared_task(bind=True)
+def cleanup_expired_files(self, retention_days: int = None) -> dict:
+    """
+    Clean up files older than the retention period.
+
+    Args:
+        retention_days: Days to retain files (uses default if None)
+
+    Returns:
+        Dictionary with cleanup statistics
+    """
+    try:
+        # Get storage backend
+        storage = get_storage_backend()
+
+        logger.info(
+            f"Starting expired files cleanup task (retention: {retention_days} days)"
+        )
+        deleted_count = storage.cleanup_expired_files(
+            retention_days=retention_days, dry_run=False
+        )
+
+        stats = {
+            "success": True,
+            "deleted_count": deleted_count,
+            "retention_days": retention_days or storage.retention_days,
+            "error": None,
+        }
+
+        logger.info(f"Expired files cleanup completed. Deleted {deleted_count} files")
+        return stats
+
+    except Exception as exc:
+        logger.error(f"Expired files cleanup failed: {exc}")
+        stats = {
+            "success": False,
+            "deleted_count": 0,
+            "retention_days": retention_days,
+            "error": str(exc),
+        }
+        return stats
+
+
+@shared_task(bind=True)
+def cleanup_user_files(self, user_id: int) -> dict:
+    """
+    Clean up all files for a specific user (e.g., when user account is deleted).
+
+    Args:
+        user_id: ID of the user whose files should be deleted
+
+    Returns:
+        Dictionary with cleanup statistics
+    """
+    try:
+        # Get storage backend
+        storage = get_storage_backend()
+
+        logger.info(f"Starting user files cleanup for user {user_id}")
+        deleted_count = storage.cleanup_user_files(user_id, dry_run=False)
+
+        stats = {
+            "success": True,
+            "deleted_count": deleted_count,
+            "user_id": user_id,
+            "error": None,
+        }
+
+        logger.info(
+            f"User files cleanup completed for user {user_id}. "
+            f"Deleted {deleted_count} files"
+        )
+        return stats
+
+    except Exception as exc:
+        logger.error(f"User files cleanup failed for user {user_id}: {exc}")
+        stats = {
+            "success": False,
+            "deleted_count": 0,
+            "user_id": user_id,
+            "error": str(exc),
+        }
+        return stats
+
+
+@shared_task(bind=True)
+def rotate_file_encryption_keys(self, old_key_id: str, new_key_id: str) -> dict:
+    """
+    Rotate KMS encryption keys for all stored files.
+
+    Args:
+        old_key_id: Current KMS key ID
+        new_key_id: New KMS key ID
+
+    Returns:
+        Dictionary with rotation statistics
+    """
+    try:
+        # Get storage backend
+        storage = get_storage_backend()
+
+        # Check if storage supports key rotation (S3 only)
+        if not hasattr(storage, "rotate_encryption_key"):
+            logger.warning("Storage backend does not support encryption key rotation")
+            return {
+                "success": False,
+                "error": "Storage backend does not support encryption key rotation",
+            }
+
+        logger.info(f"Starting encryption key rotation: {old_key_id} -> {new_key_id}")
+
+        stats = {
+            "success": True,
+            "processed": 0,
+            "rotated": 0,
+            "errors": 0,
+            "old_key_id": old_key_id,
+            "new_key_id": new_key_id,
+            "error": None,
+        }
+
+        # List all files and rotate keys
+        continuation_token = None
+
+        while True:
+            list_params = {
+                "Bucket": storage.bucket_name,
+                "Prefix": "receipts/",
+                "MaxKeys": storage.cleanup_batch_size,
+            }
+
+            if continuation_token:
+                list_params["ContinuationToken"] = continuation_token
+
+            response = storage.s3_client.list_objects_v2(**list_params)
+
+            if "Contents" not in response:
+                break
+
+            for obj in response["Contents"]:
+                file_key = obj["Key"]
+                stats["processed"] += 1
+
+                try:
+                    success = storage.rotate_encryption_key(
+                        file_key, old_key_id, new_key_id
+                    )
+                    if success:
+                        stats["rotated"] += 1
+                    else:
+                        stats["errors"] += 1
+
+                except Exception as e:
+                    logger.error(f"Failed to rotate key for {file_key}: {e}")
+                    stats["errors"] += 1
+
+            # Check if there are more objects
+            if not response.get("IsTruncated"):
+                break
+
+            continuation_token = response.get("NextContinuationToken")
+
+        logger.info(
+            f"Encryption key rotation completed. "
+            f"Processed: {stats['processed']}, "
+            f"Rotated: {stats['rotated']}, "
+            f"Errors: {stats['errors']}"
+        )
+        return stats
+
+    except Exception as exc:
+        logger.error(f"Encryption key rotation failed: {exc}")
+        stats = {
+            "success": False,
+            "processed": 0,
+            "rotated": 0,
+            "errors": 0,
+            "old_key_id": old_key_id,
+            "new_key_id": new_key_id,
+            "error": str(exc),
+        }
+        return stats
+
+
 def get_recurring_transaction_schedules() -> dict:
     """
     Get the periodic task schedules for recurring transactions.
@@ -244,6 +458,16 @@ def get_recurring_transaction_schedules() -> dict:
         "validate-recurring-transactions": {
             "task": "apps.expenses.tasks.validate_recurring_transactions",
             "schedule": 60.0 * 60 * 24,  # Daily
+            "options": {"queue": "maintenance"},
+        },
+        "cleanup-orphaned-files": {
+            "task": "apps.expenses.tasks.cleanup_orphaned_files",
+            "schedule": 60.0 * 60 * 24,  # Daily
+            "options": {"queue": "maintenance"},
+        },
+        "cleanup-expired-files": {
+            "task": "apps.expenses.tasks.cleanup_expired_files",
+            "schedule": 60.0 * 60 * 24 * 7,  # Weekly
             "options": {"queue": "maintenance"},
         },
     }

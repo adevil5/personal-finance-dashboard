@@ -267,7 +267,7 @@ class ReceiptUploadSecurityTestCase(TestCase):
         # Check that the error message is about security/malware scan failure
         error_msg = str(cm.exception).lower()
         # The test should accept either the expected malware detection message
-        # or the security scan failure message (which indicates malware scanning was attempted)
+        # or the security scan failure message (indicates malware was attempted)
         self.assertTrue(
             "malware" in error_msg
             or "threats detected" in error_msg
@@ -369,7 +369,7 @@ class ReceiptUploadSecurityTestCase(TestCase):
 
                 mock_file = MockFile(filename, b"content", "image/jpeg")
 
-                # Test validator directly with mock file that preserves 
+                # Test validator directly with mock file that preserves
                 # malicious filename
                 from apps.core.security.validators import validate_receipt_file
 

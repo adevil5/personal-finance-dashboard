@@ -49,8 +49,12 @@ CSRF_TRUSTED_ORIGINS = [
 
 # Media files handling in development
 if DEBUG:
-    # Use local file storage in development
-    DEFAULT_FILE_STORAGE = "django.core.files.storage.FileSystemStorage"
+    # Use secure local file storage in development
+    DEFAULT_FILE_STORAGE = "apps.expenses.storage.SecureLocalStorage"
+
+# File storage security settings (development defaults)
+FILE_RETENTION_DAYS = 365
+CLEANUP_BATCH_SIZE = 1000
 
 # Simplified password validation for development
 AUTH_PASSWORD_VALIDATORS = [

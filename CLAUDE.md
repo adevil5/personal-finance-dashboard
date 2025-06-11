@@ -187,6 +187,24 @@ The project uses a 3-file Docker Compose structure:
   - Handle Django's filename sanitization in tests (use direct validator calls)
   - Test both success and failure paths with proper error message validation
 
+#### Secure File Storage Patterns
+
+- **Dual storage architecture**: Environment-aware backend selection via `get_storage_backend()`
+  - Local development: `SecureLocalStorage` with direct media URLs
+  - Production: `SecureS3Storage` with KMS encryption and pre-signed URLs
+  - Both extend `BaseSecureStorage` for common security features
+- **Security-first design**: All storage operations include comprehensive validation
+  - Path traversal prevention via filename sanitization and secure path generation
+  - User isolation with `receipts/{user_id}/` directory structure
+  - Magic bytes validation, not just file extension checking
+- **File cleanup policies**: Automated cleanup with safety checks
+  - Orphaned files: Remove unreferenced files with 1-day grace period
+  - Expired files: Configurable retention periods (default 365 days)
+  - User data deletion: Complete file removal on user account deletion
+- **Test validation bypass**: Use `Transaction.objects.filter().update()` to bypass field validation
+  - Required when tests need specific file paths that would fail `validate_receipt_file`
+  - Pattern: Create transaction normally, then update receipt path directly
+
 ### Key Files to Check
 
 - `config/settings/base.py` - Core Django settings
@@ -200,10 +218,12 @@ The project uses a 3-file Docker Compose structure:
 - `apps/budgets/views.py` - Budget ViewSet with statistics, filtering, and analytics endpoints
 - `apps/core/security/validators.py` - File upload security validation with multi-layer approach
 - `apps/core/security/malware.py` - Malware scanning utilities with ClamAV integration
+- `apps/expenses/storage.py` - Secure file storage backends with dual architecture (local/S3)
 - `tests/expenses/test_serializers.py` - Comprehensive serializer test examples
 - `tests/budgets/test_views.py` - Budget ViewSet test patterns and CRUD operations
 - `tests/budgets/test_analytics.py` - Budget analytics endpoint tests with 27 comprehensive test cases
 - `tests/expenses/test_receipt_security.py` - 23 comprehensive file upload security tests
+- `tests/expenses/test_secure_storage.py` - 18 comprehensive secure storage tests with local/S3 coverage
 
 ## Database Configuration
 
