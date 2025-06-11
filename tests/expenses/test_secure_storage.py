@@ -364,9 +364,7 @@ class TestSecureS3Storage(SecureStorageTestCase):
 
         # Generate pre-signed URL with 2 hour expiration
         custom_expiry = 7200  # 2 hours
-        storage.generate_presigned_url(
-            "receipts/1/test.jpg", expires_in=custom_expiry
-        )
+        storage.generate_presigned_url("receipts/1/test.jpg", expires_in=custom_expiry)
 
         # Verify custom expiration was used
         mock_client.generate_presigned_url.assert_called_once()

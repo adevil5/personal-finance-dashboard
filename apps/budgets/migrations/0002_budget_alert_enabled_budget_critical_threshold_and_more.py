@@ -24,7 +24,7 @@ class Migration(migrations.Migration):
             field=models.DecimalField(
                 blank=True,
                 decimal_places=2,
-                help_text="Critical alert threshold as percentage (e.g., 100.00 for 100%)",
+                help_text="Critical alert threshold as percentage (e.g., 100.00 for 100%)",  # noqa: E501
                 max_digits=5,
                 null=True,
             ),
@@ -83,7 +83,7 @@ class Migration(migrations.Migration):
                     models.DecimalField(
                         blank=True,
                         decimal_places=2,
-                        help_text="Budget utilization percentage when alert was triggered",
+                        help_text="Budget utilization percentage when alert was triggered",  # noqa: E501
                         max_digits=5,
                         null=True,
                     ),
