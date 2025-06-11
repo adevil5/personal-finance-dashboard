@@ -35,10 +35,10 @@ git clone https://github.com/alex-devillier/personal-finance-dashboard.git
 cd personal-finance-dashboard
 ```
 
-2. Copy the Docker environment file and start services:
+2. Copy the environment file and start services:
 
 ```bash
-cp .env.docker .env  # Use Docker-specific environment variables
+cp .env.example .env  # Edit for full Docker setup (change localhost to db/redis)
 make build
 make up
 make migrate
@@ -51,9 +51,11 @@ make createsuperuser
 
 ### Option 2: Manual Setup
 
-**Prerequisites**: Python 3.11+, PostgreSQL 17+, Redis 7.0+, Node.js 18+
+**Prerequisites**: Python 3.11+, Docker (for PostgreSQL & Redis), Node.js 18+
 
-**Best for**: Custom development environment, debugging specific issues
+**Best for**: Local development with direct Python execution, debugging
+
+**Note**: This setup still requires Docker for PostgreSQL and Redis services
 
 1. Clone the repository:
 
@@ -77,30 +79,42 @@ uv pip install -e .
 uv pip install -e ".[dev]"
 ```
 
-4. Set up environment variables:
+4. Start the database services:
 
 ```bash
-cp .env.example .env  # Use local development environment variables
-# Edit .env with your configuration
+docker-compose up -d db redis  # Start only PostgreSQL and Redis
 ```
 
-5. Run migrations:
+5. Set up environment variables:
+
+```bash
+cp .env.example .env  # Pre-configured for local development
+# Edit .env if needed (defaults should work)
+```
+
+6. Run migrations:
 
 ```bash
 python manage.py migrate
 ```
 
-6. Create a superuser:
+7. Create a superuser:
 
 ```bash
 python manage.py createsuperuser
 ```
 
-7. Run the development server:
+8. Run the development server:
 
 ```bash
 python manage.py runserver
 ```
+
+### Database Options
+
+- **Default**: Uses PostgreSQL from Docker container (requires `docker-compose up -d db`)
+- **SQLite mode**: For offline development, use `USE_SQLITE=true python manage.py runserver`
+- **Connection**: The manual setup connects to Docker PostgreSQL on `localhost:5432`
 
 ## Development
 
@@ -119,19 +133,18 @@ The project includes a Makefile for common Docker operations:
 
 For more details, see [docker/README.md](docker/README.md).
 
-### Environment Files
+### Environment Configuration
 
-The project provides two environment templates (choose one based on your setup):
+The project uses a single `.env.example` template that works for both setups:
 
-- **`.env.example`** - Template for manual/local development (uses `localhost` for services)
-- **`.env.docker`** - Template for Docker development (uses Docker service names like `db`, `redis`)
+```bash
+cp .env.example .env  # Copy template
+# Edit .env based on your setup:
+# - Local Development: Keep DB_HOST=localhost, REDIS_HOST=localhost
+# - Full Docker: Change to DB_HOST=db, REDIS_HOST=redis
+```
 
-Copy the appropriate template to create your `.env` file:
-
-- **For Docker setup**: `cp .env.docker .env`
-- **For manual setup**: `cp .env.example .env`
-
-The `.env` file is your actual configuration (not tracked in git). You can only use one setup at a time.
+The template includes clear comments explaining when to use each value.
 
 ## Testing
 

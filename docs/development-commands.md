@@ -14,30 +14,55 @@ pip install uv
 uv pip install -r requirements.txt
 uv pip install -r requirements-dev.txt
 
-# Copy environment variables
+# Copy and configure environment variables
 cp .env.example .env
+# Edit .env: use localhost for local dev, or db/redis for full Docker
 ```
 
 ## Database Operations
 
+### Prerequisites
+
 ```bash
-# Run migrations
+# Start PostgreSQL and Redis containers (required for default setup)
+docker-compose up -d db redis
+```
+
+### Migration Commands
+
+```bash
+# Run migrations (default - uses PostgreSQL)
 python manage.py migrate
+
+# Run migrations with SQLite (offline mode)
+USE_SQLITE=true python manage.py migrate
 
 # Create superuser
 python manage.py createsuperuser
 
 # Make migrations for app changes
 python manage.py makemigrations
+
+# Check migration status
+python manage.py showmigrations
 ```
+
+### Database Connection
+
+- **Default**: Connects to PostgreSQL on `localhost:5432` (requires Docker)
+- **SQLite mode**: Set `USE_SQLITE=true` for offline development
+- **Docker mode**: Use `make migrate` to run inside container
 
 ## Development Server
 
 ```bash
-# Run Django development server
+# Run Django development server (default - uses PostgreSQL)
 python manage.py runserver
 
-# Run with Docker Compose
+# Run with SQLite (offline mode)
+USE_SQLITE=true python manage.py runserver
+
+# Run with Docker Compose (all services)
 docker-compose up -d
 
 # View logs

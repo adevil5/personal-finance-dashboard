@@ -70,14 +70,21 @@ LOGGING["loggers"]["apps"]["level"] = "DEBUG"
 CELERY_TASK_ALWAYS_EAGER = True  # Execute tasks synchronously in development
 CELERY_TASK_EAGER_PROPAGATES = True
 
-# Development database (can override with environment variables)
-if not os.environ.get("DATABASE_URL"):
+# Development database configuration
+# By default, uses PostgreSQL from Docker container
+# Set USE_SQLITE=true to use SQLite for offline development
+if os.environ.get("USE_SQLITE", "").lower() == "true":
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
             "NAME": BASE_DIR / "db.sqlite3",
         }
     }
+    print("Using SQLite database for development")
+elif not os.environ.get("DATABASE_URL"):
+    # Default to PostgreSQL - expects Docker container running
+    # Database settings inherit from base.py which reads from .env
+    pass
 
 # PII Encryption key for development (if not set)
 if not PII_ENCRYPTION_KEY:

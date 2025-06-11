@@ -169,6 +169,37 @@ Quick reference:
 - `tests/budgets/test_analytics.py` - Budget analytics endpoint tests with 27 comprehensive test cases
 - `tests/expenses/test_receipt_security.py` - 23 comprehensive file upload security tests
 
+## Database Configuration
+
+### Development Database Strategy
+
+The project uses a dual-database approach for flexibility:
+
+1. **PostgreSQL (Default)**: Matches production environment
+   - Uses Docker PostgreSQL container
+   - Required for features like field-level encryption, complex queries
+   - Connect via `localhost:5432` when running Django locally
+   - No configuration needed - uses settings from `.env`
+
+2. **SQLite (Offline Mode)**: For quick development without Docker
+   - Enable with `USE_SQLITE=true` environment variable
+   - Example: `USE_SQLITE=true python manage.py runserver`
+   - Limited functionality - some PostgreSQL-specific features may not work
+   - Useful for UI development, quick prototyping
+
+### Running Migrations
+
+```bash
+# Default (PostgreSQL via Docker)
+python manage.py migrate
+
+# With SQLite
+USE_SQLITE=true python manage.py migrate
+
+# Inside Docker container
+make migrate
+```
+
 ## Development Notes
 
 - Use uv (not standard pip) to manage python packages in this project

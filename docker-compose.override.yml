@@ -2,6 +2,15 @@
 # This file is automatically loaded by docker-compose in development
 
 services:
+  # Override ports for local development to avoid conflicts
+  db:
+    ports:
+      - "5433:5432"  # Map to 5433 to avoid conflict with local PostgreSQL
+
+  redis:
+    ports:
+      - "6380:6379"  # Map to 6380 to avoid conflict with local Redis
+
   web:
     # Use development server instead of gunicorn
     command: python manage.py runserver 0.0.0.0:8000
