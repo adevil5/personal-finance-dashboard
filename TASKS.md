@@ -234,12 +234,12 @@ This document serves as the master task list for the Personal Finance Dashboard 
 
 ### 5.1 Analytics Engine
 
-- [ ] **5.1.1** Spending analytics
-  - [ ] Write tests for analytics calculations
-  - [ ] Implement spending trends over time
-  - [ ] Add category-wise breakdowns
-  - [ ] Calculate averages and totals
-  - [ ] Test with various data scenarios
+- [x] **5.1.1** Spending analytics
+  - [x] Write tests for analytics calculations
+  - [x] Implement spending trends over time
+  - [x] Add category-wise breakdowns
+  - [x] Calculate averages and totals
+  - [x] Test with various data scenarios
 
 - [ ] **5.1.2** Report generation
   - [ ] Write tests for report formats

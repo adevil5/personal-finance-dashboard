@@ -205,6 +205,19 @@ The project uses a 3-file Docker Compose structure:
   - Required when tests need specific file paths that would fail `validate_receipt_file`
   - Pattern: Create transaction normally, then update receipt path directly
 
+#### Analytics Engine Patterns
+
+- **SpendingAnalytics class**: Non-model analytics engine in `apps/analytics/models.py`
+  - User-scoped analysis with date range filtering (start_date, end_date)
+  - Database-agnostic: PostgreSQL uses DATE_TRUNC, SQLite uses Extract functions
+  - Core methods: `get_total_spending()`, `get_category_breakdown()`, `get_spending_trends()`
+  - Trend periods: daily, weekly, monthly with database-specific implementations
+  - Always filters to expense transactions only (`transaction_type=Transaction.EXPENSE`)
+- **Analytics testing patterns**: Comprehensive scenario testing
+  - Use `--settings=config.settings.testing` for reliable test execution
+  - Test categories: basic functionality, edge cases, data scenarios (large amounts, precision, stress tests)
+  - Pattern: 26 total tests across `test_analytics_engine.py` and `test_analytics_scenarios.py`
+
 ### Key Files to Check
 
 - `config/settings/base.py` - Core Django settings
@@ -224,6 +237,9 @@ The project uses a 3-file Docker Compose structure:
 - `tests/budgets/test_analytics.py` - Budget analytics endpoint tests with 27 comprehensive test cases
 - `tests/expenses/test_receipt_security.py` - 23 comprehensive file upload security tests
 - `tests/expenses/test_secure_storage.py` - 18 comprehensive secure storage tests with local/S3 coverage
+- `apps/analytics/models.py` - SpendingAnalytics engine with database-agnostic trend analysis
+- `tests/analytics/test_analytics_engine.py` - 14 core analytics functionality tests
+- `tests/analytics/test_analytics_scenarios.py` - 11 comprehensive scenario and edge case tests
 
 ## Database Configuration
 
