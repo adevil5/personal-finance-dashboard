@@ -10,6 +10,9 @@ RUN apt-get update && apt-get install -y \
     g++ \
     libpq-dev \
     curl \
+    tesseract-ocr \
+    tesseract-ocr-eng \
+    libtesseract-dev \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -46,6 +49,8 @@ FROM python:3.12-slim as runtime
 RUN apt-get update && apt-get install -y \
     libpq-dev \
     curl \
+    tesseract-ocr \
+    tesseract-ocr-eng \
     && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user

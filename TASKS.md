@@ -216,12 +216,12 @@ This document serves as the master task list for the Personal Finance Dashboard 
   - [x] Scan files for malware
   - [x] Test upload scenarios
 
-- [ ] **4.1.2** PII scanning in files
-  - [ ] Write tests for OCR and PII detection
-  - [ ] Implement receipt OCR with pytesseract
-  - [ ] Scan for PII in uploaded receipts
-  - [ ] Add PII redaction for receipts
-  - [ ] Test PII detection accuracy
+- [x] **4.1.2** PII scanning in files
+  - [x] Write tests for OCR and PII detection
+  - [x] Implement receipt OCR with pytesseract
+  - [x] Scan for PII in uploaded receipts
+  - [x] Add PII redaction for receipts
+  - [x] Test PII detection accuracy
 
 - [ ] **4.1.3** Secure file storage
   - [ ] Write tests for file storage
