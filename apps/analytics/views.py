@@ -3,6 +3,7 @@ Analytics views for report generation and data analysis.
 """
 
 from datetime import date, timedelta
+from decimal import Decimal
 
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
@@ -10,12 +11,15 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from django.contrib.auth.decorators import login_required
+from django.core.cache import cache
+from django.db.models import Sum
 from django.http import HttpResponse
 from django.utils.decorators import method_decorator
 from django.views.generic import View
 
 from apps.analytics.models import SpendingAnalytics
 from apps.analytics.reports import ExcelReportGenerator, PDFReportGenerator
+from apps.expenses.models import Transaction
 
 
 @method_decorator(login_required, name="dispatch")
@@ -583,3 +587,319 @@ def day_of_week_analysis(request):
             {"error": f"Error generating day of week analysis: {str(e)}"},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def dashboard_metrics(request):
+    """
+    Get comprehensive dashboard metrics for current or specified month.
+
+    Query parameters:
+    - year: Year for metrics (default: current year)
+    - month: Month for metrics (default: current month)
+    """
+    # Parse year and month parameters
+    current_date = date.today()
+    year = current_date.year
+    month = current_date.month
+
+    year_param = request.GET.get("year")
+    month_param = request.GET.get("month")
+
+    if year_param:
+        try:
+            year = int(year_param)
+            if year < 1900 or year > current_date.year:
+                return Response(
+                    {"error": "Year must be between 1900 and current year."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        except ValueError:
+            return Response(
+                {"error": "Invalid year format. Must be an integer."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+    if month_param:
+        try:
+            month = int(month_param)
+            if month < 1 or month > 12:
+                return Response(
+                    {"error": "Month must be between 1 and 12."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        except ValueError:
+            return Response(
+                {"error": "Invalid month format. Must be an integer."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+    # Check if requesting future date
+    request_date = date(year, month, 1)
+    if request_date > current_date.replace(day=1):
+        return Response(
+            {"error": "Cannot request metrics for future months."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    # Generate cache key
+    cache_key = f"dashboard_metrics_{request.user.id}_{year}_{month}"
+    cached_data = cache.get(cache_key)
+    if cached_data:
+        return Response(cached_data)
+
+    try:
+        # Calculate month boundaries
+        month_start = date(year, month, 1)
+        if month == 12:
+            month_end = date(year + 1, 1, 1) - timedelta(days=1)
+        else:
+            month_end = date(year, month + 1, 1) - timedelta(days=1)
+
+        # Get current month analytics
+        analytics = SpendingAnalytics(request.user, month_start, month_end)
+
+        # Calculate basic metrics
+        total_income = _get_total_income(request.user, month_start, month_end)
+        total_expenses = analytics.get_total_spending()
+        net_savings = total_income - total_expenses
+        savings_rate = (
+            float((net_savings / total_income) * 100) if total_income > 0 else 0.0
+        )
+
+        # Get previous month for comparison
+        if month == 1:
+            prev_month = 12
+            prev_year = year - 1
+        else:
+            prev_month = month - 1
+            prev_year = year
+
+        prev_month_start = date(prev_year, prev_month, 1)
+        if prev_month == 12:
+            prev_month_end = date(prev_year + 1, 1, 1) - timedelta(days=1)
+        else:
+            prev_month_end = date(prev_year, prev_month + 1, 1) - timedelta(days=1)
+
+        # Calculate previous month metrics
+        prev_analytics = SpendingAnalytics(
+            request.user, prev_month_start, prev_month_end
+        )
+        prev_total_income = _get_total_income(
+            request.user, prev_month_start, prev_month_end
+        )
+        prev_total_expenses = prev_analytics.get_total_spending()
+        prev_net_savings = prev_total_income - prev_total_expenses
+
+        # Month-over-month comparisons
+        income_change = total_income - prev_total_income
+        expense_change = total_expenses - prev_total_expenses
+        savings_change = net_savings - prev_net_savings
+
+        income_change_pct = (
+            float((income_change / prev_total_income) * 100)
+            if prev_total_income > 0
+            else 0.0
+        )
+        expense_change_pct = (
+            float((expense_change / prev_total_expenses) * 100)
+            if prev_total_expenses > 0
+            else 0.0
+        )
+        savings_change_pct = (
+            float((savings_change / prev_net_savings) * 100)
+            if prev_net_savings > 0
+            else 0.0
+        )
+
+        # Get top spending categories for current month
+        category_breakdown = analytics.get_category_breakdown()
+        top_categories = []
+        for category_name, amount in sorted(
+            category_breakdown.items(), key=lambda x: x[1], reverse=True
+        )[:5]:
+            percentage = (
+                float((amount / total_expenses) * 100) if total_expenses > 0 else 0.0
+            )
+            top_categories.append(
+                {
+                    "name": category_name,
+                    "amount": float(amount),
+                    "percentage": round(percentage, 1),
+                }
+            )
+
+        # Get recent transactions (last 5)
+        recent_transactions = (
+            Transaction.objects.filter(user=request.user, is_active=True)
+            .select_related("category")
+            .order_by("-date", "-created_at")[:5]
+        )
+
+        recent_trans_data = []
+        for trans in recent_transactions:
+            recent_trans_data.append(
+                {
+                    "id": trans.id,
+                    "amount": float(trans.amount_index),
+                    "category": (
+                        trans.category.name if trans.category else "Uncategorized"
+                    ),
+                    "date": trans.date.isoformat(),
+                    "transaction_type": trans.transaction_type,
+                    "merchant": trans.merchant if trans.merchant else "",
+                }
+            )
+
+        # Calculate daily spending average
+        days_in_period = (month_end - month_start).days + 1
+        if (
+            request_date.month == current_date.month
+            and request_date.year == current_date.year
+        ):
+            # Current month - use days passed so far
+            days_passed = (current_date - month_start).days + 1
+            avg_daily = float(total_expenses / days_passed) if days_passed > 0 else 0.0
+        else:
+            # Historical month - use all days
+            avg_daily = (
+                float(total_expenses / days_in_period) if days_in_period > 0 else 0.0
+            )
+
+        # Get budget summary
+        budget_summary = _get_budget_summary(request.user, month_start, month_end)
+
+        # Build response data
+        data = {
+            "period": {
+                "year": year,
+                "month": month,
+                "start_date": month_start.isoformat(),
+                "end_date": month_end.isoformat(),
+            },
+            "current_month": {
+                "total_income": float(total_income),
+                "total_expenses": float(total_expenses),
+                "net_savings": float(net_savings),
+                "savings_rate": round(savings_rate, 1),
+            },
+            "month_over_month": {
+                "income_change": {
+                    "amount": float(income_change),
+                    "percentage": round(income_change_pct, 2),
+                },
+                "expense_change": {
+                    "amount": float(expense_change),
+                    "percentage": round(expense_change_pct, 2),
+                },
+                "savings_change": {
+                    "amount": float(savings_change),
+                    "percentage": round(savings_change_pct, 2),
+                },
+            },
+            "metrics": {
+                "transaction_count": analytics.get_transaction_count()
+                + _get_income_transaction_count(request.user, month_start, month_end),
+                "average_daily_spending": round(avg_daily, 2),
+                "average_transaction_amount": float(
+                    analytics.get_average_transaction_amount()
+                ),
+            },
+            "top_categories": top_categories,
+            "recent_transactions": recent_trans_data,
+            "budget_summary": budget_summary,
+        }
+
+        # Cache for 1 hour (3600 seconds)
+        cache.set(cache_key, data, 3600)
+
+        return Response(data)
+
+    except Exception as e:
+        return Response(
+            {"error": f"Error generating dashboard metrics: {str(e)}"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
+def _get_total_income(user, start_date, end_date):
+    """Get total income for user in date range."""
+    result = Transaction.objects.filter(
+        user=user,
+        transaction_type=Transaction.INCOME,
+        date__gte=start_date,
+        date__lte=end_date,
+        is_active=True,
+    ).aggregate(total=Sum("amount_index"))
+    return result["total"] or Decimal("0.00")
+
+
+def _get_income_transaction_count(user, start_date, end_date):
+    """Get count of income transactions for user in date range."""
+    return Transaction.objects.filter(
+        user=user,
+        transaction_type=Transaction.INCOME,
+        date__gte=start_date,
+        date__lte=end_date,
+        is_active=True,
+    ).count()
+
+
+def _get_budget_summary(user, start_date, end_date):
+    """Get budget summary for the period."""
+    try:
+        from apps.budgets.models import Budget
+
+        # Get active budgets that overlap with the period
+        budgets = Budget.objects.filter(
+            user=user,
+            is_active=True,
+            period_start__lte=end_date,
+            period_end__gte=start_date,
+        )
+
+        if not budgets.exists():
+            return {
+                "total_budgets": 0,
+                "over_budget_count": 0,
+                "total_budget_amount": 0.0,
+                "total_budget_spent": 0.0,
+                "overall_utilization": 0.0,
+            }
+
+        total_budget_amount = Decimal("0.00")
+        total_budget_spent = Decimal("0.00")
+        over_budget_count = 0
+
+        for budget in budgets:
+            total_budget_amount += budget.amount
+            spent_amount = budget.calculate_spent_amount()  # This uses the method
+            total_budget_spent += spent_amount
+
+            if spent_amount > budget.amount:
+                over_budget_count += 1
+
+        overall_utilization = (
+            float((total_budget_spent / total_budget_amount) * 100)
+            if total_budget_amount > 0
+            else 0.0
+        )
+
+        return {
+            "total_budgets": budgets.count(),
+            "over_budget_count": over_budget_count,
+            "total_budget_amount": float(total_budget_amount),
+            "total_budget_spent": float(total_budget_spent),
+            "overall_utilization": round(overall_utilization, 2),
+        }
+
+    except ImportError:
+        # Budget app not available
+        return {
+            "total_budgets": 0,
+            "over_budget_count": 0,
+            "total_budget_amount": 0.0,
+            "total_budget_spent": 0.0,
+            "overall_utilization": 0.0,
+        }

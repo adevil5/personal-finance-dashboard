@@ -218,6 +218,37 @@ The project uses a 3-file Docker Compose structure:
   - Test categories: basic functionality, edge cases, data scenarios (large amounts, precision, stress tests)
   - Pattern: 26 total tests across `test_analytics_engine.py` and `test_analytics_scenarios.py`
 
+#### Analytics API Patterns
+
+- **Core analytics endpoints**: 6 REST API endpoints providing comprehensive financial data
+  - `/api/analytics/trends/` - Spending trends (daily/weekly/monthly periods)
+  - `/api/analytics/categories/` - Category breakdown with percentages
+  - `/api/analytics/comparison/` - Period-to-period spending comparison
+  - `/api/analytics/top-categories/` - Top spending categories (configurable limit 1-20)
+  - `/api/analytics/day-of-week/` - Day-of-week spending analysis
+  - `/api/analytics/dashboard/` - Comprehensive dashboard metrics with caching
+- **API design patterns**: Consistent structure across all analytics endpoints
+  - Authentication required: `@permission_classes([IsAuthenticated])`
+  - Date range filtering: `start_date`/`end_date` parameters with ISO format validation
+  - User data isolation: All queries automatically scoped to `request.user`
+  - Error handling: Standardized 400/500 responses with descriptive error messages
+  - JSON serialization: Decimal to float conversion for proper frontend consumption
+- **Dashboard metrics architecture**: Comprehensive monthly financial overview
+  - Current month metrics: income, expenses, net savings, savings rate
+  - Month-over-month comparisons: percentage changes with safe division handling
+  - Top 5 spending categories with percentages of total expenses
+  - Recent transactions (last 5) with category and type information
+  - Budget integration: summary of budget utilization and over-budget counts
+  - Performance optimization: Redis caching with 1-hour expiration
+  - Date validation: Prevents future date requests, handles month boundaries correctly
+- **Testing methodology**: 39 comprehensive analytics API tests
+  - Authentication and authorization validation
+  - Date parameter validation and edge cases
+  - Performance testing with 500+ transactions (<2s response time)
+  - User data isolation verification
+  - Caching behavior simulation (mocked in test environment)
+  - Budget integration testing with create/calculate patterns
+
 ### Key Files to Check
 
 - `config/settings/base.py` - Core Django settings
@@ -240,6 +271,8 @@ The project uses a 3-file Docker Compose structure:
 - `apps/analytics/models.py` - SpendingAnalytics engine with database-agnostic trend analysis
 - `tests/analytics/test_analytics_engine.py` - 14 core analytics functionality tests
 - `tests/analytics/test_analytics_scenarios.py` - 11 comprehensive scenario and edge case tests
+- `tests/analytics/test_api_endpoints.py` - 24 analytics API endpoint tests covering all 5 data visualization endpoints
+- `tests/analytics/test_dashboard_metrics.py` - 15 dashboard metrics tests including performance and caching validation
 
 ## Database Configuration
 

@@ -257,12 +257,12 @@ This document serves as the master task list for the Personal Finance Dashboard 
   - [x] Implement date range filtering
   - [x] Test API performance
 
-- [ ] **5.2.2** Dashboard metrics
-  - [ ] Write tests for dashboard data
-  - [ ] Calculate key metrics (total spent, savings rate)
-  - [ ] Add month-over-month comparisons
-  - [ ] Implement caching for performance
-  - [ ] Test metric calculations
+- [x] **5.2.2** Dashboard metrics
+  - [x] Write tests for dashboard data
+  - [x] Calculate key metrics (total spent, savings rate)
+  - [x] Add month-over-month comparisons
+  - [x] Implement caching for performance
+  - [x] Test metric calculations
 
 ## Phase 6: Frontend Development (Days 20-23)
 

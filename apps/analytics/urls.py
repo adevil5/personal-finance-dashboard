@@ -5,6 +5,7 @@ from apps.analytics.views import (
     PDFReportView,
     analytics_summary,
     category_breakdown,
+    dashboard_metrics,
     day_of_week_analysis,
     spending_comparison,
     spending_trends,
@@ -19,6 +20,7 @@ urlpatterns = [
     path("reports/pdf/", PDFReportView.as_view(), name="pdf_report"),
     # API endpoints
     path("api/summary/", analytics_summary, name="analytics_summary"),
+    path("api/dashboard/", dashboard_metrics, name="api_dashboard_metrics"),
     path("api/trends/", spending_trends, name="api_spending_trends"),
     path("api/categories/", category_breakdown, name="api_category_breakdown"),
     path("api/comparison/", spending_comparison, name="api_spending_comparison"),
