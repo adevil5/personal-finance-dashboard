@@ -209,12 +209,12 @@ This document serves as the master task list for the Personal Finance Dashboard 
 
 ### 4.1 File Upload Security
 
-- [ ] **4.1.1** Receipt upload handling
-  - [ ] Write tests for file upload security
-  - [ ] Implement file type validation
-  - [ ] Add file size limits
-  - [ ] Scan files for malware
-  - [ ] Test upload scenarios
+- [x] **4.1.1** Receipt upload handling
+  - [x] Write tests for file upload security
+  - [x] Implement file type validation
+  - [x] Add file size limits
+  - [x] Scan files for malware
+  - [x] Test upload scenarios
 
 - [ ] **4.1.2** PII scanning in files
   - [ ] Write tests for OCR and PII detection

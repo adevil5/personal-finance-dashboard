@@ -11,6 +11,7 @@ from apps.core.security.fields import (
     EncryptedDecimalField,
     EncryptedTextField,
 )
+from apps.core.security.validators import validate_receipt_file
 
 User = get_user_model()
 
@@ -280,7 +281,8 @@ class Transaction(models.Model):
         upload_to=upload_receipt_to,
         blank=True,
         null=True,
-        help_text="Receipt or supporting document",
+        validators=[validate_receipt_file],
+        help_text="Receipt or supporting document (images and PDFs only, max 10MB)",
     )
 
     # Recurring transaction fields

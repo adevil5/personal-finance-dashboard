@@ -715,9 +715,9 @@ class TransactionModelTestCase(TestCase):
 
     def test_receipt_file_upload(self):
         """Test receipt file handling."""
-        # Create a simple test file
+        # Create a simple test file (use valid image type)
         test_file = SimpleUploadedFile(
-            "receipt.txt", b"Test receipt content", content_type="text/plain"
+            "receipt.jpg", b"fake_jpeg_content", content_type="image/jpeg"
         )
 
         transaction = Transaction.objects.create(
@@ -738,7 +738,7 @@ class TransactionModelTestCase(TestCase):
         self.assertTrue(transaction.receipt.name)
         self.assertIn(str(self.user1.id), transaction.receipt.name)
         self.assertIn("receipt", transaction.receipt.name)
-        self.assertTrue(transaction.receipt.name.endswith(".txt"))
+        self.assertTrue(transaction.receipt.name.endswith(".jpg"))
 
     def test_receipt_file_optional(self):
         """Test that receipt file is optional."""
@@ -1218,7 +1218,7 @@ class TransactionValidationEdgeCasesTestCase(TestCase):
         from django.core.files.uploadedfile import SimpleUploadedFile
 
         test_file = SimpleUploadedFile(
-            "test_receipt.txt", b"Test receipt content", content_type="text/plain"
+            "test_receipt.jpg", b"fake_jpeg_content", content_type="image/jpeg"
         )
 
         transaction = Transaction(

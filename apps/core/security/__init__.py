@@ -11,6 +11,7 @@ from .fields import (
     EncryptedTextField,
 )
 from .logging import AuditLogger, PIISafeFilter, PIISafeFormatter, PIISafeJSONFormatter
+from .malware import MalwareScanError, scan_file
 from .masking import (
     DataMasker,
     PIIMasker,
@@ -20,6 +21,7 @@ from .masking import (
     mask_ssn,
 )
 from .pii_detection import PIIDetector
+from .validators import ReceiptFileValidator, validate_receipt_file
 
 __all__ = [
     "PIIFieldEncryption",
@@ -41,4 +43,8 @@ __all__ = [
     "PIISafeJSONFormatter",
     "PIISafeFilter",
     "AuditLogger",
+    "validate_receipt_file",
+    "ReceiptFileValidator",
+    "scan_file",
+    "MalwareScanError",
 ]

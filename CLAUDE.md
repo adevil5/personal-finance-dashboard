@@ -23,106 +23,15 @@ Personal Finance Dashboard (PFD) - A secure web application for tracking expense
 - **Build Tool**: Vite (for frontend assets)
 - **Container**: Docker with multi-stage builds, Docker Compose for development
 
-## Common Development Commands
+## Development Commands
 
-### Environment Setup
+For detailed setup instructions and command reference, see [docs/development-commands.md](docs/development-commands.md).
 
-```bash
-# Create and activate virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies with uv
-pip install uv
-uv pip install -r requirements.txt
-uv pip install -r requirements-dev.txt
-
-# Copy environment variables
-cp .env.example .env
-```
-
-### Database Operations
-
-```bash
-# Run migrations
-python manage.py migrate
-
-# Create superuser
-python manage.py createsuperuser
-
-# Make migrations for app changes
-python manage.py makemigrations
-```
-
-### Development Server
-
-```bash
-# Run Django development server
-python manage.py runserver
-
-# Run with Docker Compose
-docker-compose up -d
-
-# View logs
-docker-compose logs -f web
-```
-
-### Testing
-
-```bash
-# Run all tests with coverage
-pytest --cov=. --cov-report=html
-
-# Run specific test file
-pytest path/to/test_file.py
-
-# Run tests for specific app
-pytest apps/expenses/tests/
-
-# Run with verbose output
-pytest -v
-
-# Run only failing tests
-pytest --lf
-```
-
-### Code Quality
-
-```bash
-# Format code with black
-black .
-
-# Sort imports
-isort .
-
-# Run flake8 linting
-flake8
-
-# Type checking with mypy
-mypy .
-
-# Security scanning with bandit
-bandit -r . -ll
-
-# Run all pre-commit hooks
-pre-commit run --all-files
-```
-
-### Frontend Build
-
-```bash
-# Install frontend dependencies
-npm install
-
-# Run Vite dev server
-npm run dev
-
-# Build for production
-npm run build
-
-# Type check TypeScript
-npm run typecheck
-```
+Quick reference:
+- **Setup**: `python -m venv venv && source venv/bin/activate && pip install uv && uv pip install -r requirements.txt`
+- **Testing**: `pytest --cov=. --cov-report=html`
+- **Development**: `python manage.py runserver` or `docker-compose up -d`
+- **Code Quality**: `black . && isort . && flake8 && mypy .`
 
 ## Architecture Overview
 
@@ -226,6 +135,22 @@ npm run typecheck
   - `_calculate_percentage_change()`: Safe percentage change with zero-division handling
   - User isolation enforced in all analytics queries
 
+#### File Upload Security Patterns
+
+- **File validation layers**: Multi-layer security approach for receipt uploads
+  - File type validation using magic bytes detection (not just extensions)
+  - File size enforcement (10MB limit) with proper error messages
+  - Content validation to prevent executable/script content in image files
+  - Malware scanning integration with fallback behavior
+- **Security validator architecture**: `ReceiptFileValidator` class in `apps/core/security/validators.py`
+  - Configurable validation components (size, types, malware scanning)
+  - Proper exception handling with security-first failure modes
+  - Path traversal and filename security validation
+- **Test mocking patterns**: Mock placement for imported functions
+  - Mock at import location: `@patch('apps.core.security.validators.scan_file')` not source
+  - Handle Django's filename sanitization in tests (use direct validator calls)
+  - Test both success and failure paths with proper error message validation
+
 ### Key Files to Check
 
 - `config/settings/base.py` - Core Django settings
@@ -237,9 +162,12 @@ npm run typecheck
 - `apps/budgets/models.py` - Budget model with alert configurations
 - `apps/budgets/serializers.py` - Budget API serialization with calculated fields
 - `apps/budgets/views.py` - Budget ViewSet with statistics, filtering, and analytics endpoints
+- `apps/core/security/validators.py` - File upload security validation with multi-layer approach
+- `apps/core/security/malware.py` - Malware scanning utilities with ClamAV integration
 - `tests/expenses/test_serializers.py` - Comprehensive serializer test examples
 - `tests/budgets/test_views.py` - Budget ViewSet test patterns and CRUD operations
 - `tests/budgets/test_analytics.py` - Budget analytics endpoint tests with 27 comprehensive test cases
+- `tests/expenses/test_receipt_security.py` - 23 comprehensive file upload security tests
 
 ## Development Notes
 
