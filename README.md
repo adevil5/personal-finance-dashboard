@@ -4,154 +4,114 @@ A secure web application for tracking expenses, managing budgets, and analyzing 
 
 ## Features
 
-- **Expense Tracking**: Record and categorize all your transactions
-- **Budget Management**: Set and monitor budgets by category
-- **Analytics & Insights**: Visualize spending patterns with charts and reports
-- **Data Security**: Field-level encryption for all PII data
+- **Expense Tracking**: Record and categorize transactions with receipt upload support
+- **Budget Management**: Set budgets with intelligent alerts and threshold monitoring
+- **Analytics & Insights**: Advanced analytics with trend analysis and performance metrics
+- **Receipt Processing**: OCR text extraction with PII detection and malware scanning
+- **Data Security**: Field-level encryption, audit logging, and comprehensive PII protection
 - **Import/Export**: Bulk import from bank statements, export to various formats
-- **Multi-Currency Support**: Handle transactions in different currencies
+- **Multi-Currency Support**: Handle transactions in different currencies with formatting
 
 ## Tech Stack
 
-- **Backend**: Django 5.2 LTS, PostgreSQL, Redis, Celery
-- **Frontend**: Django Templates + HTMX, TypeScript, Tailwind CSS, Chart.js
-- **Security**: Field-level encryption, audit logging, PII detection
-- **Testing**: pytest, 90%+ coverage requirement, TDD methodology
+- **Backend**: Django 5.2.1 LTS, PostgreSQL 17+, Redis 7.0+, Celery
+- **Frontend**: Django Templates + HTMX, TypeScript 5.x, Tailwind CSS 4.x, Chart.js 4.x
+- **Security**: Field-level encryption, audit logging, OCR-based PII detection, malware scanning
+- **Testing**: pytest, 90%+ coverage requirement, TDD methodology, 516 tests
+- **Build**: Docker multi-stage builds, Vite for frontend assets, uv for Python dependencies
 
-## Getting Started
+## Quick Start
 
-Choose **one** of the following setup methods:
-
-### Option 1: Docker Setup (Recommended)
-
-**Prerequisites**: Docker Desktop installed on your machine
-
-**Best for**: Quick setup, consistent environment, local development
-
-1. Clone the repository:
+**Prerequisites**: Docker Desktop installed
 
 ```bash
 git clone https://github.com/alex-devillier/personal-finance-dashboard.git
 cd personal-finance-dashboard
-```
-
-2. Copy the environment file and start services:
-
-```bash
-cp .env.example .env  # Edit for full Docker setup (change localhost to db/redis)
-make build
+cp .env.example .env
 make up
 make migrate
 make createsuperuser
 ```
 
-3. Access the application:
-   - Web app: http://localhost:8000
-   - Admin panel: http://localhost:8000/admin
+**Access**: http://localhost:8000 (Web) | http://localhost:8000/admin (Admin)
 
-### Option 2: Manual Setup
+## Development Setup
 
-**Prerequisites**: Python 3.11+, Docker (for PostgreSQL & Redis), Node.js 18+
+The project supports multiple development approaches. For detailed instructions, see [docs/development-commands.md](docs/development-commands.md).
 
-**Best for**: Local development with direct Python execution, debugging
+### Primary: Docker-First (Recommended)
 
-**Note**: This setup still requires Docker for PostgreSQL and Redis services
-
-1. Clone the repository:
+Uses Docker for all services with live code reloading:
 
 ```bash
-git clone https://github.com/alex-devillier/personal-finance-dashboard.git
-cd personal-finance-dashboard
+make up        # Start all services
+make migrate   # Run migrations
+make test      # Run tests
+make shell     # Django shell
 ```
 
-2. Create and activate a virtual environment:
+**Ports**: PostgreSQL on 5433, Redis on 6380 (to avoid local conflicts)
+
+### Alternative: Local + External Services
+
+Run Django locally with Docker databases:
 
 ```bash
-python3.11 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+docker-compose up -d db redis  # Start databases only
+python manage.py runserver     # Run Django locally
 ```
 
-3. Install dependencies:
+**Benefits**: Better IDE integration, easier debugging
+
+### Emergency: Fully Offline
+
+Uses SQLite when Docker unavailable:
 
 ```bash
-pip install uv
-uv pip install -e .
-uv pip install -e ".[dev]"
+USE_SQLITE=true python manage.py runserver
 ```
 
-4. Start the database services:
-
-```bash
-docker-compose up -d db redis  # Start only PostgreSQL and Redis
-```
-
-5. Set up environment variables:
-
-```bash
-cp .env.example .env  # Pre-configured for local development
-# Edit .env if needed (defaults should work)
-```
-
-6. Run migrations:
-
-```bash
-python manage.py migrate
-```
-
-7. Create a superuser:
-
-```bash
-python manage.py createsuperuser
-```
-
-8. Run the development server:
-
-```bash
-python manage.py runserver
-```
-
-### Database Options
-
-- **Default**: Uses PostgreSQL from Docker container (requires `docker-compose up -d db`)
-- **SQLite mode**: For offline development, use `USE_SQLITE=true python manage.py runserver`
-- **Connection**: The manual setup connects to Docker PostgreSQL on `localhost:5432`
+**Limitations**: Some PostgreSQL features disabled
 
 ## Development
 
-See [TASKS.md](TASKS.md) for the complete development roadmap and task list.
+See [TASKS.md](TASKS.md) for the complete development roadmap and [docs/development-commands.md](docs/development-commands.md) for detailed setup instructions.
 
-### Docker Commands
+### Architecture
 
-The project includes a Makefile for common Docker operations:
+**3-File Docker Compose Structure**:
+- `docker-compose.yml` - Base configuration
+- `docker-compose.override.yml` - Development overrides (auto-loaded)
+- `docker-compose.prod.yml` - Production overrides (explicit)
 
-- `make up` - Start all services
-- `make down` - Stop all services
-- `make logs` - View logs
-- `make shell` - Open Django shell
-- `make test` - Run tests
-- `make help` - Show all available commands
+**Key Benefits**:
+- Volume mounts enable live code reloading in containers
+- Port remapping prevents conflicts with local services
+- Production builds use multi-stage Dockerfiles
 
-For more details, see [docker/README.md](docker/README.md).
-
-### Environment Configuration
-
-The project uses a single `.env.example` template that works for both setups:
+### Common Commands
 
 ```bash
-cp .env.example .env  # Copy template
-# Edit .env based on your setup:
-# - Local Development: Keep DB_HOST=localhost, REDIS_HOST=localhost
-# - Full Docker: Change to DB_HOST=db, REDIS_HOST=redis
+make help          # Show all available commands
+make up            # Start all services
+make logs          # View logs
+make shell         # Django shell
+make test-coverage # Run tests with coverage report
 ```
-
-The template includes clear comments explaining when to use each value.
 
 ## Testing
 
-Run tests with coverage:
+Current status: **516 tests passing** with 75% coverage (target: 90%)
 
 ```bash
+# Run all tests
+make test
+
+# Run with coverage
 pytest --cov=. --cov-report=html
+
+# Run specific tests
+pytest apps/expenses/tests/
 ```
 
 ## Security

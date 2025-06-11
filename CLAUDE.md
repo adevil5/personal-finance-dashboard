@@ -23,14 +23,50 @@ Personal Finance Dashboard (PFD) - A secure web application for tracking expense
 - **Build Tool**: Vite (for frontend assets)
 - **Container**: Docker with multi-stage builds, Docker Compose for development
 
-## Development Commands
+## Development Setup
 
 For detailed setup instructions and command reference, see [docs/development-commands.md](docs/development-commands.md).
 
-Quick reference:
+### Recommended Development Approach
+
+#### Primary: Docker-first development (recommended)
+
+- Use `make` commands as the primary interface
+- All development happens in containers with live code sync via volume mounts
+- Consistent environment across all developers
+- Examples: `make up`, `make migrate`, `make test`, `make shell`
+
+#### Alternative: Local development with external services
+
+- Run Django directly on host with `python manage.py ...`
+- Use Docker only for PostgreSQL/Redis: `docker-compose up -d db redis`
+- Good for debugging, IDE integration, faster iteration
+- Note: Ports remapped to avoid conflicts (PostgreSQL on 5433, Redis on 6380)
+
+#### Emergency: Fully offline
+
+- Use SQLite mode: `USE_SQLITE=true python manage.py ...`
+- No Docker dependency, limited functionality
+
+### Docker Compose Architecture
+
+The project uses a 3-file Docker Compose structure:
+
+1. **`docker-compose.yml`** - Base configuration (shared by dev/prod)
+2. **`docker-compose.override.yml`** - Development overrides (auto-loaded)
+   - Port remapping to avoid conflicts (5433, 6380)
+   - Volume mounts for live code reloading
+   - Development tools (mailhog, pgadmin)
+3. **`docker-compose.prod.yml`** - Production overrides (explicit)
+   - No volume mounts (code baked into image)
+   - Nginx reverse proxy, security hardening
+   - Usage: `docker-compose -f docker-compose.yml -f docker-compose.prod.yml up`
+
+### Quick Reference Commands
+
 - **Setup**: `python -m venv venv && source venv/bin/activate && pip install uv && uv pip install -r requirements.txt`
-- **Testing**: `pytest --cov=. --cov-report=html`
-- **Development**: `python manage.py runserver` or `docker-compose up -d`
+- **Testing**: `pytest --cov=. --cov-report=html` or `make test`
+- **Development**: `make up` (Docker) or `python manage.py runserver` (local)
 - **Code Quality**: `black . && isort . && flake8 && mypy .`
 
 ## Architecture Overview
