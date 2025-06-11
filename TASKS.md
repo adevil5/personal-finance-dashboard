@@ -268,12 +268,12 @@ This document serves as the master task list for the Personal Finance Dashboard 
 
 ### 6.1 Base Templates
 
-- [ ] **6.1.1** Layout and navigation
-  - [ ] Create base template with Tailwind CSS
-  - [ ] Implement responsive navigation
-  - [ ] Add authentication status display
-  - [ ] Create footer with links
-  - [ ] Test responsive design
+- [x] **6.1.1** Layout and navigation
+  - [x] Create base template with Tailwind CSS
+  - [x] Implement responsive navigation
+  - [x] Add authentication status display
+  - [x] Create footer with links
+  - [x] Test responsive design
 
 - [ ] **6.1.2** HTMX integration
   - [ ] Set up HTMX for dynamic updates

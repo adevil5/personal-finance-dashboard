@@ -19,7 +19,7 @@ services:
       - DJANGO_SETTINGS_MODULE=config.settings.development
       - PYTHONUNBUFFERED=1
       - DJANGO_DEBUG=True
-    # Mount source code for hot reloading
+    # Mount source code for hot reloading - completely override volumes to remove static_volume
     volumes:
       - .:/app
       - /app/node_modules  # Prevent overwriting node_modules

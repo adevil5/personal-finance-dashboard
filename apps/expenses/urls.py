@@ -1,7 +1,17 @@
-from django.urls import path  # noqa: F401
+from django.urls import path
+from django.views.generic import TemplateView
 
 app_name = "expenses"
 
 urlpatterns = [
-    # Expense URLs will be added here
+    path(
+        "",
+        TemplateView.as_view(template_name="expenses/transaction_list.html"),
+        name="transaction-list",
+    ),
+    path(
+        "create/",
+        TemplateView.as_view(template_name="expenses/transaction_form.html"),
+        name="transaction-create",
+    ),
 ]

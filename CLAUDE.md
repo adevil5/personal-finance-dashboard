@@ -305,6 +305,46 @@ USE_SQLITE=true python manage.py migrate
 make migrate
 ```
 
+## Frontend Development
+
+### Template Architecture
+
+- **Base Template**: `templates/base.html` provides responsive navigation, footer, and Tailwind CSS integration
+- **Template Inheritance**: All page templates extend `base.html` using `{% extends 'base.html' %}`
+- **Navigation**: Alpine.js powered responsive navigation with authentication state detection
+- **Assets**: Vite builds CSS/JS assets, Django serves them via static files
+
+### Docker Volume Mount Gotcha
+
+**Critical Issue**: Docker Compose volume precedence can break static asset serving in development.
+
+- **Problem**: Named volumes override bind mounts for the same path
+- **Symptom**: Local static file changes not visible in container (e.g., built CSS/JS missing)
+- **Root Cause**: `static_volume:/app/static` in base docker-compose.yml masks `.:/app` bind mount
+- **Solution**: Override volumes in `docker-compose.override.yml` to remove conflicting named volumes
+
+```yaml
+# In docker-compose.override.yml - Remove static_volume to allow bind mount
+volumes:
+  - .:/app
+  - /app/node_modules
+  # DO NOT include: static_volume:/app/static (conflicts with bind mount)
+```
+
+### Asset Build Process
+
+- **Development**: Vite builds assets locally (`npm run build`), volume mount syncs to container
+- **Production**: Assets built during Docker image creation
+- **File Paths**: Built assets in `static/dist/assets/` with hashed filenames for cache-busting
+
+### Template Patterns
+
+- **URL Namespacing**: Use app namespaces in URLs (`expenses:transaction-list`, `users:profile`)
+- **Authentication Display**: `{% if user.is_authenticated %}` blocks for conditional content
+- **Responsive Design**: Tailwind CSS mobile-first approach with `md:` breakpoints
+- **Message Framework**: Django messages automatically styled with Tailwind alert classes
+
 ## Development Notes
 
 - Use uv (not standard pip) to manage python packages in this project
+- Docker volume conflicts common with static files - check volume precedence in compose files

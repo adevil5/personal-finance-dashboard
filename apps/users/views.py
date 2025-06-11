@@ -426,3 +426,17 @@ class TwoFactorBackupCodesView(View):
 
 class TwoFactorDisabledSuccessView(TemplateView):
     template_name = "registration/2fa_disabled_success.html"
+
+
+@method_decorator(login_required, name="dispatch")
+class ProfileView(TemplateView):
+    """User profile view (placeholder)."""
+
+    template_name = "users/profile.html"
+
+
+@method_decorator(login_required, name="dispatch")
+class SettingsView(TemplateView):
+    """User settings view (placeholder)."""
+
+    template_name = "users/settings.html"

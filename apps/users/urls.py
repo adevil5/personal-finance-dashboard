@@ -88,4 +88,7 @@ urlpatterns = [
         views.TwoFactorBackupCodesView.as_view(),
         name="2fa_backup_codes",
     ),
+    # Profile and Settings (temporary placeholder views)
+    path("profile/", views.ProfileView.as_view(), name="profile"),
+    path("settings/", views.SettingsView.as_view(), name="settings"),
 ]

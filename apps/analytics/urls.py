@@ -1,4 +1,5 @@
 from django.urls import path
+from django.views.generic import TemplateView
 
 from apps.analytics.views import (
     ExcelReportView,
@@ -15,6 +16,10 @@ from apps.analytics.views import (
 app_name = "analytics"
 
 urlpatterns = [
+    # Main reports page
+    path(
+        "", TemplateView.as_view(template_name="analytics/reports.html"), name="reports"
+    ),
     # Report generation endpoints
     path("reports/excel/", ExcelReportView.as_view(), name="excel_report"),
     path("reports/pdf/", PDFReportView.as_view(), name="pdf_report"),

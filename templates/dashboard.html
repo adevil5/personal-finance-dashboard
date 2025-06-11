@@ -1,10 +1,87 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Dashboard</title>
-</head>
-<body>
-    <h1>Dashboard</h1>
-    <p>Welcome to your Personal Finance Dashboard!</p>
-</body>
-</html>
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - Personal Finance Dashboard{% endblock %}
+
+{% block content %}
+    <div class="bg-white rounded-lg shadow p-6">
+        <h1 class="text-3xl font-bold text-gray-900 mb-4">Dashboard</h1>
+        <p class="text-gray-600 mb-6">Welcome to your Personal Finance Dashboard!</p>
+
+        <!-- Quick stats cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="bg-blue-50 rounded-lg p-6">
+                <div class="flex items-center">
+                    <div class="p-2 bg-blue-100 rounded-md">
+                        <svg class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-blue-600">Total Expenses</p>
+                        <p class="text-2xl font-semibold text-blue-900">$0.00</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-green-50 rounded-lg p-6">
+                <div class="flex items-center">
+                    <div class="p-2 bg-green-100 rounded-md">
+                        <svg class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-green-600">Monthly Budget</p>
+                        <p class="text-2xl font-semibold text-green-900">$0.00</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-yellow-50 rounded-lg p-6">
+                <div class="flex items-center">
+                    <div class="p-2 bg-yellow-100 rounded-md">
+                        <svg class="h-6 w-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-yellow-600">Savings Rate</p>
+                        <p class="text-2xl font-semibold text-yellow-900">0%</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-purple-50 rounded-lg p-6">
+                <div class="flex items-center">
+                    <div class="p-2 bg-purple-100 rounded-md">
+                        <svg class="h-6 w-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-purple-600">Transactions</p>
+                        <p class="text-2xl font-semibold text-purple-900">0</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent activity placeholder -->
+        <div class="bg-gray-50 rounded-lg p-8 text-center">
+            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+            <h3 class="mt-2 text-sm font-medium text-gray-900">No recent activity</h3>
+            <p class="mt-1 text-sm text-gray-500">Get started by adding your first transaction.</p>
+            <div class="mt-6">
+                <a href="{% url 'expenses:transaction-create' %}"
+                   class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    <svg class="-ml-1 mr-2 h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+                    </svg>
+                    Add Transaction
+                </a>
+            </div>
+        </div>
+    </div>
+{% endblock %}

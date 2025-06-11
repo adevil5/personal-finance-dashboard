@@ -57,6 +57,7 @@ THIRD_PARTY_APPS = [
     "crispy_tailwind",
     "django_htmx",
     "storages",
+    "django_vite",
 ]
 
 LOCAL_APPS = [
@@ -242,6 +243,18 @@ PII_OLD_ENCRYPTION_KEYS = []
 FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
 DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
 ALLOWED_FILE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".pdf", ".csv", ".xls", ".xlsx"]
+
+# Django Vite Configuration
+DJANGO_VITE = {
+    "default": {
+        "dev_mode": DEBUG,
+        "dev_server_host": "localhost",
+        "dev_server_port": 5173,
+        "ws_client_url": "@vite/client",
+        "manifest_path": BASE_DIR / "static" / "dist" / ".vite" / "manifest.json",
+        "static_url_prefix": "dist",
+    }
+}
 
 # Logging
 LOGGING = {
