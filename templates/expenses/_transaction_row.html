@@ -1,0 +1,153 @@
+{% load htmx_tags %}
+
+<tr id="transaction-row-{{ transaction.id }}" class="hover:bg-gray-50">
+    <!-- Transaction Description/Merchant -->
+    <td class="px-6 py-4 whitespace-nowrap">
+        <div class="flex items-center">
+            <div class="flex-shrink-0 h-10 w-10">
+                <!-- Transaction Type Icon -->
+                {% if transaction.transaction_type == 'expense' %}
+                    <div class="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center">
+                        <svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                        </svg>
+                    </div>
+                {% elif transaction.transaction_type == 'income' %}
+                    <div class="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
+                        <svg class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                        </svg>
+                    </div>
+                {% else %}
+                    <div class="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                        <svg class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                        </svg>
+                    </div>
+                {% endif %}
+            </div>
+            <div class="ml-4">
+                <div class="text-sm font-medium text-gray-900">
+                    {{ transaction.description|default:"No description" }}
+                </div>
+                {% if transaction.merchant %}
+                    <div class="text-sm text-gray-500">
+                        {{ transaction.merchant }}
+                    </div>
+                {% endif %}
+                {% if transaction.notes %}
+                    <div class="text-xs text-gray-400 mt-1">
+                        {{ transaction.notes|truncatechars:50 }}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </td>
+
+    <!-- Category -->
+    <td class="px-6 py-4 whitespace-nowrap">
+        {% if transaction.category %}
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                {{ transaction.category.name }}
+            </span>
+        {% else %}
+            <span class="text-sm text-gray-400">No category</span>
+        {% endif %}
+    </td>
+
+    <!-- Date -->
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+        {{ transaction.date|date:"M d, Y" }}
+    </td>
+
+    <!-- Amount -->
+    <td class="px-6 py-4 whitespace-nowrap">
+        <div class="text-sm font-medium
+                    {% if transaction.transaction_type == 'expense' %}text-red-600
+                    {% elif transaction.transaction_type == 'income' %}text-green-600
+                    {% else %}text-blue-600{% endif %}">
+            {% if transaction.transaction_type == 'expense' %}-{% elif transaction.transaction_type == 'income' %}+{% endif %}${{ transaction.amount|floatformat:2 }}
+        </div>
+    </td>
+
+    <!-- Type -->
+    <td class="px-6 py-4 whitespace-nowrap">
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                     {% if transaction.transaction_type == 'expense' %}bg-red-100 text-red-800
+                     {% elif transaction.transaction_type == 'income' %}bg-green-100 text-green-800
+                     {% else %}bg-blue-100 text-blue-800{% endif %}">
+            {{ transaction.get_transaction_type_display }}
+        </span>
+    </td>
+
+    <!-- Actions -->
+    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+        <div class="flex items-center justify-end space-x-2">
+            <!-- Edit Button -->
+            <button type="button"
+                    {% htmx_get 'expenses:transaction-edit-form' transaction.id %}
+                    hx-target="#transaction-row-{{ transaction.id }}"
+                    hx-swap="outerHTML"
+                    class="text-blue-600 hover:text-blue-900 transition-colors">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                <span class="sr-only">Edit transaction</span>
+            </button>
+
+            <!-- Receipt Link -->
+            {% if transaction.receipt %}
+                <a href="{{ transaction.receipt.url }}"
+                   target="_blank"
+                   class="text-gray-600 hover:text-gray-900 transition-colors">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.586-6.586a2 2 0 00-2.828-2.828z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 17l4-4" />
+                    </svg>
+                    <span class="sr-only">View receipt</span>
+                </a>
+            {% endif %}
+
+            <!-- Delete Button -->
+            <button type="button"
+                    onclick="deleteTransaction({{ transaction.id }})"
+                    class="text-red-600 hover:text-red-900 transition-colors">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                <span class="sr-only">Delete transaction</span>
+            </button>
+        </div>
+    </td>
+</tr>
+
+<script>
+function deleteTransaction(transactionId) {
+    if (confirm('Are you sure you want to delete this transaction? This action cannot be undone.')) {
+        // Call API to delete transaction
+        fetch(`/api/v1/transactions/${transactionId}/`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': htmxUtils.getCSRFToken(),
+                'Authorization': 'Token ' + localStorage.getItem('auth_token') // If using token auth
+            }
+        })
+        .then(response => {
+            if (response.ok) {
+                // Remove the row from the DOM
+                document.getElementById(`transaction-row-${transactionId}`).remove();
+
+                // Show success message
+                htmxUtils.showError('transaction-results-errors', 'Transaction deleted successfully');
+                setTimeout(() => htmxUtils.hideError('transaction-results-errors'), 3000);
+            } else {
+                throw new Error('Failed to delete transaction');
+            }
+        })
+        .catch(error => {
+            console.error('Error deleting transaction:', error);
+            htmxUtils.showError('transaction-results-errors', 'Failed to delete transaction');
+        });
+    }
+}
+</script>

@@ -276,6 +276,9 @@ The project uses a 3-file Docker Compose structure:
 - `apps/core/templatetags/htmx_tags.py` - Custom HTMX template tags for DRY dynamic UI patterns
 - `tests/core/test_htmx_tags.py` - 20 comprehensive HTMX template tag tests
 - `templates/htmx/` - Reusable HTMX components (loading indicators, error containers)
+- `apps/expenses/views.py` - Frontend views with TransactionListView and HTMX partials
+- `tests/expenses/test_frontend_views.py` - 17 comprehensive frontend view tests with HTMX coverage
+- `templates/expenses/` - Complete transaction frontend templates with inline editing
 
 ## Database Configuration
 
@@ -371,6 +374,40 @@ volumes:
 - **Progressive Enhancement**: HTMX boost for enhanced navigation without SPA complexity
   - `{% htmx_boost True %}` - Enable HTMX for traditional links
   - `{% htmx_push_url True %}` - URL pushing for browser history
+
+#### Frontend View Patterns
+
+- **Dual View Architecture**: Separate frontend and API views for optimal UX
+  - API ViewSets: `/api/v1/transactions/` for programmatic access
+  - Frontend Views: `/expenses/` for user interface with server-side rendering
+  - HTMX partial views: Dynamic updates without full page reloads
+- **ListView + HTMX Pattern**: Combine Django's ListView with HTMX for filtering
+  - Use `LoginRequiredMixin` for authentication enforcement
+  - Apply same filtering logic in both main view and HTMX partial
+  - DRY principle: Extract filter logic to reusable methods when possible
+- **Template Structure**: Modular template architecture for maintainability
+  - Main template: Full page layout with filters and container
+  - `_list_partial.html`: Table content for HTMX updates
+  - `_row.html`: Individual row for inline editing updates
+  - `_edit_form.html`: Inline edit form replacement
+- **Form Auto-submission**: JavaScript debounced form submission for real-time filtering
+  - 500ms debounce on input events prevents excessive API calls
+  - Preserves all filter parameters in pagination links
+  - Use `htmx.trigger(form, 'submit')` for programmatic form submission
+
+#### Frontend Testing Patterns
+
+- **Template Name Testing**: Use full template paths in assertions
+  - `assert "expenses/transaction_list.html" in [t.name for t in response.templates]`
+  - Frontend templates use app-namespaced paths unlike API tests
+- **HTMX Testing**: Add `HTTP_HX_REQUEST="true"` header for partial view tests
+  - Tests both regular page loads and HTMX partial responses
+  - Verify different templates are used for different contexts
+- **Authentication Flow Testing**: Test redirect behavior for unauthenticated users
+  - Frontend views redirect to login, API views return 401/403
+- **Filter Preservation Testing**: Ensure filters persist through pagination
+  - Test query parameter preservation in pagination links
+  - Verify filter state maintained across HTMX updates
 
 ## Development Notes
 

@@ -284,12 +284,12 @@ This document serves as the master task list for the Personal Finance Dashboard 
 
 ### 6.2 Transaction Interface
 
-- [ ] **6.2.1** Transaction list view
-  - [ ] Write tests for transaction display
-  - [ ] Create paginated transaction list
-  - [ ] Add filtering and search
-  - [ ] Implement inline editing with HTMX
-  - [ ] Test user interactions
+- [x] **6.2.1** Transaction list view
+  - [x] Write tests for transaction display
+  - [x] Create paginated transaction list
+  - [x] Add filtering and search
+  - [x] Implement inline editing with HTMX
+  - [x] Test user interactions
 
 - [ ] **6.2.2** Transaction forms
   - [ ] Write tests for form validation

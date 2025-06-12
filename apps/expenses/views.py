@@ -6,7 +6,14 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from django.http import Http404
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.paginator import Paginator
+from django.db.models import Q
+from django.http import Http404, JsonResponse
+from django.shortcuts import get_object_or_404, render
+from django.views.decorators.http import require_http_methods
+from django.views.generic import ListView
 
 from .models import Category, Transaction
 from .serializers import (
@@ -415,3 +422,308 @@ class TransactionViewSet(viewsets.ModelViewSet):
                 {"error": f"Failed to get storage usage: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+
+
+# Frontend Views
+
+
+class TransactionListView(LoginRequiredMixin, ListView):
+    """
+    Frontend view for displaying paginated list of transactions.
+
+    Features:
+    - User-scoped transactions only
+    - Pagination (20 items per page)
+    - Search functionality (description, merchant, notes)
+    - Filtering by category, date range, amount range, type
+    - Ordering by date (newest first)
+    """
+
+    model = Transaction
+    template_name = "expenses/transaction_list.html"
+    context_object_name = "transactions"
+    paginate_by = 20
+
+    def get_queryset(self):
+        """Return filtered and ordered transactions for the current user."""
+        queryset = (
+            Transaction.objects.filter(user=self.request.user, is_active=True)
+            .select_related("category", "parent_transaction")
+            .order_by("-date", "-created_at")
+        )
+
+        # Apply search filter
+        search_query = self.request.GET.get("search", "").strip()
+        if search_query:
+            queryset = queryset.filter(
+                Q(description__icontains=search_query)
+                | Q(merchant__icontains=search_query)
+                | Q(notes__icontains=search_query)
+            )
+
+        # Apply category filter
+        category_id = self.request.GET.get("category")
+        if category_id:
+            try:
+                queryset = queryset.filter(category_id=int(category_id))
+            except (ValueError, TypeError):
+                pass
+
+        # Apply date range filters
+        date_after = self.request.GET.get("date_after")
+        if date_after:
+            try:
+                queryset = queryset.filter(date__gte=date_after)
+            except ValueError:
+                pass
+
+        date_before = self.request.GET.get("date_before")
+        if date_before:
+            try:
+                queryset = queryset.filter(date__lte=date_before)
+            except ValueError:
+                pass
+
+        # Apply amount range filters
+        amount_min = self.request.GET.get("amount_min")
+        if amount_min:
+            try:
+                queryset = queryset.filter(amount_index__gte=Decimal(amount_min))
+            except (ValueError, TypeError):
+                pass
+
+        amount_max = self.request.GET.get("amount_max")
+        if amount_max:
+            try:
+                queryset = queryset.filter(amount_index__lte=Decimal(amount_max))
+            except (ValueError, TypeError):
+                pass
+
+        # Apply transaction type filter
+        transaction_type = self.request.GET.get("transaction_type")
+        if transaction_type in [
+            Transaction.EXPENSE,
+            Transaction.INCOME,
+            Transaction.TRANSFER,
+        ]:
+            queryset = queryset.filter(transaction_type=transaction_type)
+
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        """Add additional context data for the template."""
+        context = super().get_context_data(**kwargs)
+
+        # Add user's categories for filter dropdown
+        context["categories"] = Category.objects.filter(
+            user=self.request.user, is_active=True
+        ).order_by("name")
+
+        # Add current filter values to context
+        context["search_query"] = self.request.GET.get("search", "")
+        context["selected_category"] = self.request.GET.get("category", "")
+        context["date_after"] = self.request.GET.get("date_after", "")
+        context["date_before"] = self.request.GET.get("date_before", "")
+        context["amount_min"] = self.request.GET.get("amount_min", "")
+        context["amount_max"] = self.request.GET.get("amount_max", "")
+        context["transaction_type"] = self.request.GET.get("transaction_type", "")
+
+        # Add transaction type choices for filter dropdown
+        context["transaction_types"] = Transaction.TRANSACTION_TYPE_CHOICES
+
+        return context
+
+
+@login_required
+def transaction_row_partial(request, pk):
+    """
+    HTMX partial view for rendering a single transaction row.
+    Used for updating individual rows after inline editing.
+    """
+    transaction = get_object_or_404(
+        Transaction, pk=pk, user=request.user, is_active=True
+    )
+    return render(
+        request, "expenses/_transaction_row.html", {"transaction": transaction}
+    )
+
+
+@login_required
+def transaction_edit_form_partial(request, pk):
+    """
+    HTMX partial view for rendering transaction edit form.
+    Used for inline editing functionality.
+    """
+    transaction = get_object_or_404(
+        Transaction, pk=pk, user=request.user, is_active=True
+    )
+    categories = Category.objects.filter(user=request.user, is_active=True).order_by(
+        "name"
+    )
+
+    return render(
+        request,
+        "expenses/_transaction_edit_form.html",
+        {
+            "transaction": transaction,
+            "categories": categories,
+            "transaction_types": Transaction.TRANSACTION_TYPE_CHOICES,
+        },
+    )
+
+
+@login_required
+@require_http_methods(["POST"])
+def transaction_update_htmx(request, pk):
+    """
+    HTMX view for updating a transaction via inline editing.
+    Returns the updated transaction row on success.
+    """
+    transaction = get_object_or_404(
+        Transaction, pk=pk, user=request.user, is_active=True
+    )
+
+    try:
+        # Update transaction fields
+        transaction.description = request.POST.get("description", "").strip()
+        transaction.merchant = request.POST.get("merchant", "").strip()
+        transaction.notes = request.POST.get("notes", "").strip()
+
+        # Handle amount
+        amount_str = request.POST.get("amount", "").strip()
+        if amount_str:
+            transaction.amount = Decimal(amount_str)
+            # Update amount_index for filtering/sorting
+            transaction.amount_index = transaction.amount
+
+        # Handle date
+        date_str = request.POST.get("date", "").strip()
+        if date_str:
+            from datetime import datetime
+
+            transaction.date = datetime.strptime(date_str, "%Y-%m-%d").date()
+
+        # Handle category (only for expenses)
+        if transaction.transaction_type == Transaction.EXPENSE:
+            category_id = request.POST.get("category")
+            if category_id:
+                try:
+                    category = Category.objects.get(
+                        id=int(category_id), user=request.user, is_active=True
+                    )
+                    transaction.category = category
+                except (Category.DoesNotExist, ValueError, TypeError):
+                    return JsonResponse(
+                        {"error": "Invalid category selected"}, status=400
+                    )
+
+        # Handle transaction type
+        transaction_type = request.POST.get("transaction_type")
+        if transaction_type in [
+            Transaction.EXPENSE,
+            Transaction.INCOME,
+            Transaction.TRANSFER,
+        ]:
+            transaction.transaction_type = transaction_type
+            # Clear category for non-expense transactions
+            if transaction_type != Transaction.EXPENSE:
+                transaction.category = None
+
+        transaction.save()
+
+        # Return updated transaction row
+        return render(
+            request, "expenses/_transaction_row.html", {"transaction": transaction}
+        )
+
+    except Decimal.InvalidOperation:
+        return JsonResponse({"error": "Invalid amount format"}, status=400)
+    except ValueError as e:
+        return JsonResponse({"error": str(e)}, status=400)
+    except Exception:
+        return JsonResponse({"error": "An error occurred while updating"}, status=500)
+
+
+@login_required
+def transaction_filter_partial(request):
+    """
+    HTMX partial view for filtering transactions.
+    Returns filtered transaction list without page reload.
+    """
+    # Use the same filtering logic as TransactionListView
+    queryset = (
+        Transaction.objects.filter(user=request.user, is_active=True)
+        .select_related("category", "parent_transaction")
+        .order_by("-date", "-created_at")
+    )
+
+    # Apply search filter
+    search_query = request.GET.get("search", "").strip()
+    if search_query:
+        queryset = queryset.filter(
+            Q(description__icontains=search_query)
+            | Q(merchant__icontains=search_query)
+            | Q(notes__icontains=search_query)
+        )
+
+    # Apply category filter
+    category_id = request.GET.get("category")
+    if category_id:
+        try:
+            queryset = queryset.filter(category_id=int(category_id))
+        except (ValueError, TypeError):
+            pass
+
+    # Apply date range filters
+    date_after = request.GET.get("date_after")
+    if date_after:
+        try:
+            queryset = queryset.filter(date__gte=date_after)
+        except ValueError:
+            pass
+
+    date_before = request.GET.get("date_before")
+    if date_before:
+        try:
+            queryset = queryset.filter(date__lte=date_before)
+        except ValueError:
+            pass
+
+    # Apply amount range filters
+    amount_min = request.GET.get("amount_min")
+    if amount_min:
+        try:
+            queryset = queryset.filter(amount_index__gte=Decimal(amount_min))
+        except (ValueError, TypeError):
+            pass
+
+    amount_max = request.GET.get("amount_max")
+    if amount_max:
+        try:
+            queryset = queryset.filter(amount_index__lte=Decimal(amount_max))
+        except (ValueError, TypeError):
+            pass
+
+    # Apply transaction type filter
+    transaction_type = request.GET.get("transaction_type")
+    if transaction_type in [
+        Transaction.EXPENSE,
+        Transaction.INCOME,
+        Transaction.TRANSFER,
+    ]:
+        queryset = queryset.filter(transaction_type=transaction_type)
+
+    # Apply pagination
+    paginator = Paginator(queryset, 20)
+    page_number = request.GET.get("page", 1)
+    page_obj = paginator.get_page(page_number)
+
+    return render(
+        request,
+        "expenses/_transaction_list_partial.html",
+        {
+            "transactions": page_obj,
+            "page_obj": page_obj,
+            "is_paginated": page_obj.has_other_pages(),
+        },
+    )
