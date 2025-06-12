@@ -30,6 +30,7 @@ Content-Type: application/json
 ```
 
 **Response:**
+
 ```json
 {
   "token": "9944b09199c62bcf9418ad846dd0e4bbdfc6ee4b",
@@ -51,11 +52,13 @@ Authorization: Token 9944b09199c62bcf9418ad846dd0e4bbdfc6ee4b
 ### Transactions
 
 #### List Transactions
+
 ```
 GET /api/v1/transactions/
 ```
 
 **Query Parameters:**
+
 - `transaction_type` - Filter by type (`income`, `expense`, `transfer`)
 - `category` - Filter by category ID
 - `date_after` - Transactions after date (YYYY-MM-DD)
@@ -68,12 +71,14 @@ GET /api/v1/transactions/
 - `page_size` - Results per page (default: 20, max: 100)
 
 **Example Request:**
+
 ```bash
 curl -H "Authorization: Token your-token" \
   "http://localhost:8000/api/v1/transactions/?transaction_type=expense&date_after=2024-01-01&ordering=-date"
 ```
 
 **Response:**
+
 ```json
 {
   "count": 150,
@@ -103,12 +108,14 @@ curl -H "Authorization: Token your-token" \
 ```
 
 #### Create Transaction
+
 ```
 POST /api/v1/transactions/
 Content-Type: application/json
 ```
 
 **Request Body:**
+
 ```json
 {
   "amount": "45.67",
@@ -121,6 +128,7 @@ Content-Type: application/json
 ```
 
 **File Upload (Multipart):**
+
 ```bash
 curl -X POST \
   -H "Authorization: Token your-token" \
@@ -133,17 +141,20 @@ curl -X POST \
 ```
 
 #### Get Transaction
+
 ```
 GET /api/v1/transactions/{id}/
 ```
 
 #### Update Transaction
+
 ```
 PUT /api/v1/transactions/{id}/
 PATCH /api/v1/transactions/{id}/
 ```
 
 #### Delete Transaction
+
 ```
 DELETE /api/v1/transactions/{id}/
 ```
@@ -151,11 +162,13 @@ DELETE /api/v1/transactions/{id}/
 ### Categories
 
 #### List Categories
+
 ```
 GET /api/v1/categories/
 ```
 
 **Response:**
+
 ```json
 {
   "count": 12,
@@ -185,6 +198,7 @@ GET /api/v1/categories/
 ```
 
 #### Create Category
+
 ```
 POST /api/v1/categories/
 Content-Type: application/json
@@ -200,14 +214,17 @@ Content-Type: application/json
 ## Analytics Endpoints
 
 ### Dashboard Metrics
+
 ```
 GET /api/analytics/dashboard/
 ```
 
 **Query Parameters:**
+
 - `month` - Specific month (YYYY-MM, defaults to current month)
 
 **Response:**
+
 ```json
 {
   "current_month": {
@@ -261,16 +278,19 @@ GET /api/analytics/dashboard/
 ```
 
 ### Spending Trends
+
 ```
 GET /api/analytics/trends/
 ```
 
 **Query Parameters:**
+
 - `start_date` - Start date (YYYY-MM-DD)
 - `end_date` - End date (YYYY-MM-DD)
 - `period` - Grouping period (`daily`, `weekly`, `monthly`)
 
 **Response:**
+
 ```json
 {
   "period": "monthly",
@@ -290,15 +310,18 @@ GET /api/analytics/trends/
 ```
 
 ### Category Breakdown
+
 ```
 GET /api/analytics/categories/
 ```
 
 **Query Parameters:**
+
 - `start_date` - Start date (YYYY-MM-DD)
 - `end_date` - End date (YYYY-MM-DD)
 
 **Response:**
+
 ```json
 {
   "total_expenses": "3200.00",
@@ -320,15 +343,18 @@ GET /api/analytics/categories/
 ```
 
 ### Period Comparison
+
 ```
 GET /api/analytics/comparison/
 ```
 
 **Query Parameters:**
+
 - `start_date` - Current period start (YYYY-MM-DD)
 - `end_date` - Current period end (YYYY-MM-DD)
 
 **Response:**
+
 ```json
 {
   "current_period": {
@@ -357,25 +383,30 @@ GET /api/analytics/comparison/
 ```
 
 ### Top Categories
+
 ```
 GET /api/analytics/top-categories/
 ```
 
 **Query Parameters:**
+
 - `start_date` - Start date (YYYY-MM-DD)
 - `end_date` - End date (YYYY-MM-DD)
 - `limit` - Number of top categories (1-20, default: 5)
 
 ### Day of Week Analysis
+
 ```
 GET /api/analytics/day-of-week/
 ```
 
 **Query Parameters:**
+
 - `start_date` - Start date (YYYY-MM-DD)
 - `end_date` - End date (YYYY-MM-DD)
 
 **Response:**
+
 ```json
 {
   "data": [
@@ -398,17 +429,20 @@ GET /api/analytics/day-of-week/
 ## Budget Endpoints
 
 ### List Budgets
+
 ```
 GET /api/v1/budgets/
 ```
 
 **Query Parameters:**
+
 - `is_active` - Filter active budgets (`true`/`false`)
 - `category` - Filter by category ID
 - `period_start_after` - Budgets starting after date
 - `period_end_before` - Budgets ending before date
 
 **Response:**
+
 ```json
 {
   "count": 8,
@@ -437,6 +471,7 @@ GET /api/v1/budgets/
 ```
 
 ### Create Budget
+
 ```
 POST /api/v1/budgets/
 Content-Type: application/json
@@ -453,11 +488,13 @@ Content-Type: application/json
 ```
 
 ### Budget Statistics
+
 ```
 GET /api/v1/budgets/statistics/
 ```
 
 **Response:**
+
 ```json
 {
   "total_budgets": 8,
@@ -477,6 +514,7 @@ GET /api/v1/budgets/statistics/
 ```
 
 ### Current Budgets
+
 ```
 GET /api/v1/budgets/current/
 ```
@@ -484,28 +522,34 @@ GET /api/v1/budgets/current/
 Returns budgets active for the current date.
 
 ### Budget Analytics
+
 ```
 GET /api/v1/budgets/{id}/analytics/
 ```
 
 **Query Parameters:**
+
 - `compare_previous` - Include previous period comparison (`true`/`false`)
 - `category_breakdown` - Include category breakdown (`true`/`false`)
 
 ### Budget Performance
+
 ```
 GET /api/v1/budgets/performance/
 ```
 
 **Query Parameters:**
+
 - `good_threshold` - Performance threshold for "good" (default: 80.0)
 
 ### Budget Trends
+
 ```
 GET /api/v1/budgets/trends/
 ```
 
 **Query Parameters:**
+
 - `months` - Number of months to analyze (1-24, default: 6)
 - `category_id` - Filter by category
 
@@ -527,6 +571,7 @@ All list endpoints use cursor-based pagination:
 ### Timestamps
 
 All timestamps are in ISO 8601 format with UTC timezone:
+
 ```json
 {
   "created_at": "2024-01-15T09:30:00Z",
@@ -537,6 +582,7 @@ All timestamps are in ISO 8601 format with UTC timezone:
 ### Decimal Fields
 
 Financial amounts are returned as strings to preserve precision:
+
 ```json
 {
   "amount": "123.45",
@@ -591,6 +637,7 @@ API endpoints are rate limited to prevent abuse:
 - **File uploads**: 50 requests per hour
 
 Rate limit headers are included in responses:
+
 ```
 X-RateLimit-Limit: 1000
 X-RateLimit-Remaining: 999
@@ -602,12 +649,14 @@ X-RateLimit-Reset: 1640995200
 ### Complete Transaction Workflow
 
 1. **Get categories for the form:**
+
 ```bash
 curl -H "Authorization: Token your-token" \
   http://localhost:8000/api/v1/categories/
 ```
 
 2. **Create a transaction:**
+
 ```bash
 curl -X POST \
   -H "Authorization: Token your-token" \
@@ -624,6 +673,7 @@ curl -X POST \
 ```
 
 3. **Upload receipt for the transaction:**
+
 ```bash
 curl -X PATCH \
   -H "Authorization: Token your-token" \
@@ -632,6 +682,7 @@ curl -X PATCH \
 ```
 
 4. **Get updated dashboard metrics:**
+
 ```bash
 curl -H "Authorization: Token your-token" \
   http://localhost:8000/api/analytics/dashboard/
@@ -640,6 +691,7 @@ curl -H "Authorization: Token your-token" \
 ### Budget Management Workflow
 
 1. **Create a monthly budget:**
+
 ```bash
 curl -X POST \
   -H "Authorization: Token your-token" \
@@ -656,6 +708,7 @@ curl -X POST \
 ```
 
 2. **Check budget performance:**
+
 ```bash
 curl -H "Authorization: Token your-token" \
   http://localhost:8000/api/v1/budgets/1/analytics/?compare_previous=true
@@ -664,12 +717,14 @@ curl -H "Authorization: Token your-token" \
 ### Analytics and Reporting
 
 1. **Get spending trends for the last 6 months:**
+
 ```bash
 curl -H "Authorization: Token your-token" \
   "http://localhost:8000/api/analytics/trends/?start_date=2023-07-01&end_date=2024-01-31&period=monthly"
 ```
 
 2. **Export transaction data (custom endpoint):**
+
 ```bash
 curl -H "Authorization: Token your-token" \
   "http://localhost:8000/api/v1/transactions/export/?format=csv&start_date=2024-01-01"
