@@ -273,6 +273,9 @@ The project uses a 3-file Docker Compose structure:
 - `tests/analytics/test_analytics_scenarios.py` - 11 comprehensive scenario and edge case tests
 - `tests/analytics/test_api_endpoints.py` - 24 analytics API endpoint tests covering all 5 data visualization endpoints
 - `tests/analytics/test_dashboard_metrics.py` - 15 dashboard metrics tests including performance and caching validation
+- `apps/core/templatetags/htmx_tags.py` - Custom HTMX template tags for DRY dynamic UI patterns
+- `tests/core/test_htmx_tags.py` - 20 comprehensive HTMX template tag tests
+- `templates/htmx/` - Reusable HTMX components (loading indicators, error containers)
 
 ## Database Configuration
 
@@ -343,6 +346,31 @@ volumes:
 - **Authentication Display**: `{% if user.is_authenticated %}` blocks for conditional content
 - **Responsive Design**: Tailwind CSS mobile-first approach with `md:` breakpoints
 - **Message Framework**: Django messages automatically styled with Tailwind alert classes
+
+### HTMX Integration Patterns
+
+- **Template Tags**: Custom HTMX template tags in `apps/core/templatetags/htmx_tags.py` for DRY patterns
+  - `{% htmx_get "/api/data/" "#target" %}` - Generate GET request attributes
+  - `{% htmx_post "/api/create/" "#result" %}` - Generate POST request attributes with CSRF
+  - `{% htmx_delete "/api/delete/1/" "#item" "Confirm?" %}` - DELETE with confirmation
+  - `{% htmx_form "/api/update/" "#container" %}` - Form with automatic CSRF headers
+  - `{% htmx_loading "target-id" "Loading..." %}` - Loading indicators
+  - `{% htmx_error_container "form-errors" %}` - Error display containers
+- **JavaScript Utilities**: Global `htmxUtils` object in base template for programmatic control
+  - `showLoading(targetId, message)` / `hideLoading(targetId)` - Loading state management
+  - `showError(targetId, message)` / `hideError(targetId)` - Error display management
+  - `getCSRFToken()` - CSRF token retrieval for dynamic requests
+- **Event Handling**: Automatic HTMX event listeners for UX enhancements
+  - `htmx:beforeRequest` - Show loading, hide errors
+  - `htmx:afterRequest` - Hide loading, handle errors, parse JSON error responses
+  - `htmx:configRequest` - Auto-inject CSRF tokens
+- **Error Handling**: Comprehensive error management for API responses
+  - JSON error parsing with fallback to status text
+  - Toast notifications with auto-hide (5 seconds)
+  - Container-based error display for form validation
+- **Progressive Enhancement**: HTMX boost for enhanced navigation without SPA complexity
+  - `{% htmx_boost True %}` - Enable HTMX for traditional links
+  - `{% htmx_push_url True %}` - URL pushing for browser history
 
 ## Development Notes
 

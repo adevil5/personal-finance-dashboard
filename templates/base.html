@@ -275,6 +275,136 @@
         </div>
     </footer>
 
+    <!-- HTMX Configuration and Utilities -->
+    <script>
+        // HTMX Global Configuration
+        htmx.config.defaultSwapStyle = 'innerHTML';
+        htmx.config.defaultSwapDelay = 100;
+        htmx.config.defaultSettleDelay = 20;
+        htmx.config.includeIndicatorStyles = false; // We use custom indicators
+
+        // HTMX Utilities
+        window.htmxUtils = {
+            // Show loading indicator
+            showLoading: function(targetId, message = 'Loading...') {
+                const indicator = document.getElementById(targetId + '-loading');
+                if (indicator) {
+                    indicator.classList.remove('hidden');
+                    const messageEl = indicator.querySelector('span');
+                    if (messageEl) messageEl.textContent = message;
+                }
+            },
+
+            // Hide loading indicator
+            hideLoading: function(targetId) {
+                const indicator = document.getElementById(targetId + '-loading');
+                if (indicator) {
+                    indicator.classList.add('hidden');
+                }
+            },
+
+            // Show error message
+            showError: function(targetId, message = 'An error occurred') {
+                const container = document.getElementById(targetId);
+                const messageEl = document.getElementById(targetId + '-message');
+                if (container && messageEl) {
+                    messageEl.textContent = message;
+                    container.classList.remove('hidden');
+                }
+
+                // Also show toast if available
+                const toast = document.getElementById(targetId + '-toast');
+                const toastMessage = document.getElementById(targetId + '-toast-message');
+                if (toast && toastMessage) {
+                    toastMessage.textContent = message;
+                    toast.classList.remove('hidden');
+                    // Auto-hide toast after 5 seconds
+                    setTimeout(() => toast.classList.add('hidden'), 5000);
+                }
+            },
+
+            // Hide error message
+            hideError: function(targetId) {
+                const container = document.getElementById(targetId);
+                if (container) {
+                    container.classList.add('hidden');
+                }
+            },
+
+            // Get CSRF token
+            getCSRFToken: function() {
+                return document.querySelector('[name=csrfmiddlewaretoken]')?.value ||
+                       document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ||
+                       '{{ csrf_token }}';
+            }
+        };
+
+        // HTMX Event Listeners for Loading States and Error Handling
+        document.addEventListener('htmx:beforeRequest', function(evt) {
+            // Show loading indicator if target has one
+            const target = evt.detail.target;
+            if (target && target.id) {
+                htmxUtils.showLoading(target.id);
+                htmxUtils.hideError(target.id + '-errors');
+            }
+        });
+
+        document.addEventListener('htmx:afterRequest', function(evt) {
+            // Hide loading indicator
+            const target = evt.detail.target;
+            if (target && target.id) {
+                htmxUtils.hideLoading(target.id);
+            }
+
+            // Handle errors
+            if (!evt.detail.successful) {
+                const response = evt.detail.xhr.response;
+                let errorMessage = 'An error occurred';
+
+                try {
+                    const errorData = JSON.parse(response);
+                    if (errorData.error) {
+                        errorMessage = errorData.error;
+                    } else if (errorData.detail) {
+                        errorMessage = errorData.detail;
+                    } else if (typeof errorData === 'string') {
+                        errorMessage = errorData;
+                    }
+                } catch (e) {
+                    // If response is not JSON, use status text
+                    errorMessage = evt.detail.xhr.statusText || errorMessage;
+                }
+
+                if (target && target.id) {
+                    htmxUtils.showError(target.id + '-errors', errorMessage);
+                }
+            }
+        });
+
+        // Add CSRF token to all HTMX requests
+        document.addEventListener('htmx:configRequest', function(evt) {
+            evt.detail.headers['X-CSRFToken'] = htmxUtils.getCSRFToken();
+        });
+
+        // Handle HTMX response errors with proper error display
+        document.addEventListener('htmx:responseError', function(evt) {
+            console.error('HTMX Response Error:', evt.detail);
+            const target = evt.detail.target;
+            if (target && target.id) {
+                htmxUtils.showError(target.id + '-errors', 'Server error occurred');
+            }
+        });
+
+        // Handle HTMX send errors (network issues)
+        document.addEventListener('htmx:sendError', function(evt) {
+            console.error('HTMX Send Error:', evt.detail);
+            const target = evt.detail.target;
+            if (target && target.id) {
+                htmxUtils.showError(target.id + '-errors', 'Network error occurred');
+            }
+        });
+    </script>
+
     <!-- Alpine.js for interactive components -->
     <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
 
