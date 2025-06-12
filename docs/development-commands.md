@@ -71,22 +71,28 @@ USE_SQLITE=true pytest
 The project uses a 3-file Docker Compose architecture:
 
 ### 1. `docker-compose.yml` (Base Configuration)
+
 - Defines core services: web, db, redis, celery, celery-beat
 - Shared configuration used by both development and production
 - Uses `Dockerfile.dev` for development builds
 
 ### 2. `docker-compose.override.yml` (Development Overrides)
+
 **Automatically loaded** in development to avoid port conflicts:
+
 - PostgreSQL: `localhost:5433` (instead of 5432)
 - Redis: `localhost:6380` (instead of 6379)
 - Adds development tools: mailhog (email testing), pgadmin (database UI)
 - Enables volume mounts for live code reloading
 
 ### 3. `docker-compose.prod.yml` (Production Overrides)
+
 Must be explicitly specified:
+
 ```bash
 docker-compose -f docker-compose.yml -f docker-compose.prod.yml up
 ```
+
 - Uses production `Dockerfile` with multi-stage builds
 - Adds Nginx reverse proxy
 - Removes port exposure for databases (security)

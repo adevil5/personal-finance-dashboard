@@ -33,7 +33,7 @@ make migrate
 make createsuperuser
 ```
 
-**Access**: http://localhost:8000 (Web) | http://localhost:8000/admin (Admin)
+**Access**: <http://localhost:8000> (Web) | <http://localhost:8000/admin> (Admin)
 
 ## Development Setup
 
@@ -80,11 +80,13 @@ See [TASKS.md](TASKS.md) for the complete development roadmap and [docs/developm
 ### Architecture
 
 **3-File Docker Compose Structure**:
+
 - `docker-compose.yml` - Base configuration
 - `docker-compose.override.yml` - Development overrides (auto-loaded)
 - `docker-compose.prod.yml` - Production overrides (explicit)
 
 **Key Benefits**:
+
 - Volume mounts enable live code reloading in containers
 - Port remapping prevents conflicts with local services
 - Production builds use multi-stage Dockerfiles
@@ -123,6 +125,15 @@ This application implements comprehensive security measures:
 - Data masking in non-production environments
 - Secure file handling with malware scanning
 - OWASP Top 10 compliance
+
+## Documentation
+
+Comprehensive project documentation is available in the `docs/` directory:
+
+- **[Development Commands](docs/development-commands.md)** - Setup instructions and command reference
+- **[Development Patterns](docs/development-patterns.md)** - Implementation patterns for security, HTMX, testing, etc.
+- **[API Reference](docs/api-reference.md)** - Complete REST API documentation with examples
+- **[Django App Development Guide](docs/django-app-development-guide.md)** - Django best practices and conventions
 
 ## License
 
