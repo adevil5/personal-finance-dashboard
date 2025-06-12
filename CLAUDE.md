@@ -282,6 +282,12 @@ The project uses a 3-file Docker Compose structure:
 - `apps/expenses/forms.py` - Django forms with encrypted field handling and user-scoped validation
 - `tests/expenses/test_forms.py` - 30 comprehensive form tests including integration tests
 - `templates/expenses/transaction_form.html` - Transaction creation form with HTMX and file upload
+- `static/src/utils/currency.ts` - CurrencyFormatter class with multi-currency and locale support
+- `static/src/utils/validation.ts` - FormValidator with async rules and comprehensive validation helpers
+- `static/src/api/client.ts` - Type-safe APIClient with CSRF handling and complete endpoint coverage
+- `static/src/types/api.ts` - Complete TypeScript interfaces for all Django models and API responses
+- `static/src/main.ts` - Enhanced main application with TypeScript utility integration
+- `static/src/__tests__/` - 59 comprehensive TypeScript tests with TDD approach
 
 #### Django Forms with Encrypted Fields Patterns
 
@@ -458,6 +464,29 @@ volumes:
 - **Filter Preservation Testing**: Ensure filters persist through pagination
   - Test query parameter preservation in pagination links
   - Verify filter state maintained across HTMX updates
+
+### TypeScript Integration Patterns
+
+- **Architecture**: TypeScript components provide type-safe utilities while maintaining Django/HTMX compatibility
+  - Currency formatting with multi-locale support (30+ currencies)
+  - Form validation with async rules and error aggregation
+  - API client with complete type safety for all endpoints
+  - Integration via `window.PFD` global object for template access
+- **Build Setup**: Vite with strict TypeScript configuration
+  - Path aliases: `@/*` maps to `static/src/*` for clean imports
+  - ES modules with top-level await support
+  - Vitest for testing with jsdom environment and mock utilities
+  - ESLint + Prettier for code quality and formatting
+- **Type Safety Patterns**: Comprehensive interfaces for all API entities
+  - `Transaction`, `Category`, `Budget` types match Django model structure
+  - Form data types with validation constraints and error handling
+  - Paginated response types and filter interfaces
+  - API client automatically handles CSRF tokens and error responses
+- **Testing Strategy**: TDD approach with 59 comprehensive test cases
+  - Mock fetch API, localStorage, and HTMX for isolated testing
+  - Integration tests verify Django form compatibility
+  - Coverage includes currency formatting, validation, and API operations
+  - Use `npm test` for all tests, `npm run typecheck` for compilation
 
 ## Development Notes
 

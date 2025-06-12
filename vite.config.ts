@@ -51,7 +51,7 @@ export default defineConfig({
 
   // Define environment variables
   define: {
-    __DEV__: JSON.stringify(process.env.NODE_ENV === 'development'),
+    __DEV__: JSON.stringify(process.env['NODE_ENV'] === 'development'),
   },
 
   // Plugin configuration
