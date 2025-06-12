@@ -1,6 +1,6 @@
 import re
 from datetime import date
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
@@ -377,8 +377,18 @@ class Transaction(models.Model):
         super().clean()
 
         # Validate amount is positive
-        if self.amount is not None and self.amount <= Decimal("0"):
-            raise ValidationError("Amount must be greater than zero.")
+        if self.amount is not None:
+            try:
+                # Convert to Decimal if it's a string (from form validation)
+                if isinstance(self.amount, str):
+                    amount_decimal = Decimal(self.amount)
+                else:
+                    amount_decimal = self.amount
+                
+                if amount_decimal <= Decimal("0"):
+                    raise ValidationError("Amount must be greater than zero.")
+            except (InvalidOperation, ValueError):
+                raise ValidationError("Invalid amount format.")
 
         # Validate date is not in the future (except for generated recurring
         # transactions)

@@ -12,9 +12,11 @@ from django.core.paginator import Paginator
 from django.db.models import Q
 from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, render
+from django.urls import reverse_lazy
 from django.views.decorators.http import require_http_methods
-from django.views.generic import ListView
+from django.views.generic import CreateView, ListView
 
+from .forms import TransactionForm
 from .models import Category, Transaction
 from .serializers import (
     TransactionBulkDeleteSerializer,
@@ -425,6 +427,66 @@ class TransactionViewSet(viewsets.ModelViewSet):
 
 
 # Frontend Views
+
+
+class TransactionCreateView(LoginRequiredMixin, CreateView):
+    """
+    Frontend view for creating new transactions.
+    
+    Features:
+    - User-scoped transaction creation
+    - Form validation with proper error handling
+    - Receipt file upload support
+    - Category selection with dynamic visibility
+    - HTMX support for dynamic updates
+    """
+    
+    model = Transaction
+    form_class = TransactionForm
+    template_name = 'expenses/transaction_form.html'
+    success_url = reverse_lazy('expenses:transaction-list')
+    
+    def get_form_kwargs(self):
+        """Add user to form kwargs."""
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+    
+    def get_context_data(self, **kwargs):
+        """Add additional context data for the template."""
+        context = super().get_context_data(**kwargs)
+        
+        # Add user's categories for the form
+        context['categories'] = Category.objects.filter(
+            user=self.request.user, is_active=True
+        ).order_by('name')
+        
+        return context
+    
+    def form_valid(self, form):
+        """Handle successful form submission."""
+        # The form's save method already sets the user and handles validation
+        response = super().form_valid(form)
+        
+        # For HTMX requests, return a success message or redirect
+        if self.request.headers.get('HX-Request'):
+            from django.contrib import messages
+            messages.success(self.request, 'Transaction created successfully!')
+            return render(self.request, 'expenses/_transaction_success.html', {
+                'transaction': self.object
+            })
+        
+        return response
+    
+    def form_invalid(self, form):
+        """Handle form validation errors."""
+        # For HTMX requests, return the form with errors
+        if self.request.headers.get('HX-Request'):
+            return render(self.request, 'expenses/transaction_form.html', {
+                'form': form
+            })
+        
+        return super().form_invalid(form)
 
 
 class TransactionListView(LoginRequiredMixin, ListView):

@@ -279,6 +279,56 @@ The project uses a 3-file Docker Compose structure:
 - `apps/expenses/views.py` - Frontend views with TransactionListView and HTMX partials
 - `tests/expenses/test_frontend_views.py` - 17 comprehensive frontend view tests with HTMX coverage
 - `templates/expenses/` - Complete transaction frontend templates with inline editing
+- `apps/expenses/forms.py` - Django forms with encrypted field handling and user-scoped validation
+- `tests/expenses/test_forms.py` - 30 comprehensive form tests including integration tests
+- `templates/expenses/transaction_form.html` - Transaction creation form with HTMX and file upload
+
+#### Django Forms with Encrypted Fields Patterns
+
+- **Encrypted field validation**: Model clean methods must handle both string and Decimal types for encrypted fields
+  - Form data arrives as strings, but models expect proper types (Decimal for amounts)
+  - Solution: Make model.clean() robust with `isinstance(self.amount, str)` checks and conversion
+  - Pattern: `Decimal(str(amount))` with try/except for InvalidOperation
+- **User context in forms**: Pass user via form kwargs for data isolation and category filtering
+  - `get_form_kwargs()` override: `kwargs['user'] = self.request.user`
+  - Form `__init__`: `self.user = user` and filter querysets by user
+- **Dynamic field requirements**: Category required for expenses, optional for income/transfer
+  - Use `clean()` method for conditional validation, not field.required
+  - Clear category in cleaned_data for non-expense transactions
+- **Form validation flow**: Use `_post_clean()` to set user before model validation
+  - Set `self.instance.user = self.user` before calling `super()._post_clean()`
+  - Ensures model validation has proper user context
+
+#### Frontend Form Patterns
+
+- **HTMX form integration**: Dual template responses for regular vs HTMX requests
+  - Check `request.headers.get('HX-Request')` in view methods
+  - Return different templates: full form vs success partial vs form with errors
+  - Pattern: `form_valid()` and `form_invalid()` method overrides
+- **Dynamic category selection**: JavaScript toggle visibility based on transaction type
+  - Hide/show category field and toggle required attribute
+  - JavaScript function called on transaction type change
+  - Pattern: `toggleCategory(transactionType)` with DOM manipulation
+- **File upload UX**: Drag-and-drop with preview and validation feedback
+  - Custom file input styling with Tailwind CSS
+  - File preview with name/size display and clear functionality
+  - Drag/drop event handlers with visual feedback classes
+
+#### Testing Patterns for Forms
+
+- **Form validation testing**: Test both field-level and form-level validation
+  - Test all validation scenarios: required fields, data types, business rules
+  - Use form.is_valid() and form.errors for validation testing
+  - Pattern: 21 form validation tests covering edge cases
+- **Integration testing**: Test view + form + template integration
+  - Test GET requests for form display
+  - Test POST requests for form submission (valid/invalid)
+  - Test HTMX requests with appropriate headers
+  - Pattern: 9 integration tests covering authentication, context, and file upload
+- **File upload testing**: Mock file storage for test environment
+  - Use `SimpleUploadedFile` for test file creation
+  - Override MEDIA_ROOT with temporary directory for isolation
+  - Pattern: `with override_settings(MEDIA_ROOT=temp_dir)`
 
 ## Database Configuration
 

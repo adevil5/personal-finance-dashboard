@@ -291,12 +291,12 @@ This document serves as the master task list for the Personal Finance Dashboard 
   - [x] Implement inline editing with HTMX
   - [x] Test user interactions
 
-- [ ] **6.2.2** Transaction forms
-  - [ ] Write tests for form validation
-  - [ ] Create add transaction form
-  - [ ] Implement category selection
-  - [ ] Add receipt upload interface
-  - [ ] Test form submissions
+- [x] **6.2.2** Transaction forms
+  - [x] Write tests for form validation
+  - [x] Create add transaction form
+  - [x] Implement category selection
+  - [x] Add receipt upload interface
+  - [x] Test form submissions
 
 - [ ] **6.2.3** TypeScript components
   - [ ] Write tests for TypeScript utilities

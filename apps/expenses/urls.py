@@ -1,5 +1,4 @@
 from django.urls import path
-from django.views.generic import TemplateView
 
 from . import views
 
@@ -12,10 +11,10 @@ urlpatterns = [
         views.TransactionListView.as_view(),
         name="transaction-list",
     ),
-    # Transaction creation form (placeholder)
+    # Transaction creation form
     path(
         "create/",
-        TemplateView.as_view(template_name="expenses/transaction_form.html"),
+        views.TransactionCreateView.as_view(),
         name="transaction-create",
     ),
     # HTMX partial views

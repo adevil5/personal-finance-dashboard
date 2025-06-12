@@ -1,0 +1,325 @@
+{% extends 'base.html' %}
+{% load htmx_tags %}
+
+{% block title %}Add Transaction - Personal Finance Dashboard{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-lg shadow">
+    <!-- Header -->
+    <div class="px-6 py-4 border-b border-gray-200">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">Add Transaction</h1>
+                <p class="mt-1 text-sm text-gray-600">
+                    Record a new financial transaction
+                </p>
+            </div>
+            <div class="flex space-x-3">
+                <a href="{% url 'expenses:transaction-list' %}"
+                   class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    <svg class="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                    Back to List
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Form -->
+    <div class="px-6 py-6">
+        <form method="post" enctype="multipart/form-data" 
+              {% htmx_post 'expenses:transaction-create' '#transaction-form-container' %}
+              class="space-y-6">
+            {% csrf_token %}
+
+            <!-- Basic Information -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Description -->
+                <div>
+                    <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                        {{ form.description.label }} <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.description }}
+                    {% if form.description.errors %}
+                        <div class="mt-1 text-sm text-red-600">
+                            {{ form.description.errors.0 }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Amount -->
+                <div>
+                    <label for="{{ form.amount.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                        {{ form.amount.label }} <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.amount }}
+                    {% if form.amount.errors %}
+                        <div class="mt-1 text-sm text-red-600">
+                            {{ form.amount.errors.0 }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Date -->
+                <div>
+                    <label for="{{ form.date.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                        {{ form.date.label }} <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.date }}
+                    {% if form.date.errors %}
+                        <div class="mt-1 text-sm text-red-600">
+                            {{ form.date.errors.0 }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Transaction Type -->
+                <div>
+                    <label for="{{ form.transaction_type.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                        {{ form.transaction_type.label }} <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.transaction_type }}
+                    {% if form.transaction_type.errors %}
+                        <div class="mt-1 text-sm text-red-600">
+                            {{ form.transaction_type.errors.0 }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Category (only for expenses) -->
+                <div id="category-field" style="display: none;">
+                    <label for="{{ form.category.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                        {{ form.category.label }} <span class="text-red-500" id="category-required">*</span>
+                    </label>
+                    {{ form.category }}
+                    {% if form.category.errors %}
+                        <div class="mt-1 text-sm text-red-600">
+                            {{ form.category.errors.0 }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Merchant -->
+                <div>
+                    <label for="{{ form.merchant.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                        {{ form.merchant.label }}
+                    </label>
+                    {{ form.merchant }}
+                    {% if form.merchant.errors %}
+                        <div class="mt-1 text-sm text-red-600">
+                            {{ form.merchant.errors.0 }}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Notes -->
+            <div>
+                <label for="{{ form.notes.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                    {{ form.notes.label }}
+                </label>
+                {{ form.notes }}
+                {% if form.notes.errors %}
+                    <div class="mt-1 text-sm text-red-600">
+                        {{ form.notes.errors.0 }}
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Receipt Upload -->
+            <div>
+                <label for="{{ form.receipt.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                    {{ form.receipt.label }}
+                </label>
+                
+                <!-- File Upload Area -->
+                <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-gray-400 transition-colors duration-200">
+                    <div class="space-y-1 text-center">
+                        <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                            <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                        <div class="flex text-sm text-gray-600">
+                            <label for="{{ form.receipt.id_for_label }}" class="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
+                                <span>Upload a receipt</span>
+                                {{ form.receipt }}
+                            </label>
+                            <p class="pl-1">or drag and drop</p>
+                        </div>
+                        <p class="text-xs text-gray-500">
+                            PNG, JPG, PDF up to 10MB
+                        </p>
+                    </div>
+                </div>
+
+                <!-- File Preview Area -->
+                <div id="file-preview" class="mt-3 hidden">
+                    <div class="flex items-center p-3 bg-gray-50 rounded-md">
+                        <svg class="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <div class="ml-3 flex-1">
+                            <p class="text-sm font-medium text-gray-900" id="file-name"></p>
+                            <p class="text-sm text-gray-500" id="file-size"></p>
+                        </div>
+                        <button type="button" onclick="clearFile()" class="ml-3 text-gray-400 hover:text-gray-600">
+                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                {% if form.receipt.errors %}
+                    <div class="mt-1 text-sm text-red-600">
+                        {{ form.receipt.errors.0 }}
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex items-center justify-end space-x-3 pt-6 border-t border-gray-200">
+                <a href="{% url 'expenses:transaction-list' %}"
+                   class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    Cancel
+                </a>
+                <button type="submit"
+                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    <svg class="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                    Create Transaction
+                </button>
+            </div>
+
+            <!-- Loading Indicator -->
+            {% htmx_loading 'transaction-form-container' 'Creating transaction...' %}
+
+            <!-- Error Container -->
+            {% htmx_error_container 'transaction-form-errors' %}
+        </form>
+    </div>
+</div>
+
+<script>
+// Category field toggle functionality
+function toggleCategory(transactionType) {
+    const categoryField = document.getElementById('category-field');
+    const categorySelect = document.getElementById('id_category');
+    const categoryRequired = document.getElementById('category-required');
+
+    if (transactionType === 'expense') {
+        categoryField.style.display = 'block';
+        categorySelect.required = true;
+        categoryRequired.style.display = 'inline';
+    } else {
+        categoryField.style.display = 'none';
+        categorySelect.required = false;
+        categorySelect.value = '';
+        categoryRequired.style.display = 'none';
+    }
+}
+
+// File upload functionality
+function handleFileSelect(event) {
+    const file = event.target.files[0];
+    if (file) {
+        showFilePreview(file);
+    }
+}
+
+function showFilePreview(file) {
+    const preview = document.getElementById('file-preview');
+    const fileName = document.getElementById('file-name');
+    const fileSize = document.getElementById('file-size');
+
+    fileName.textContent = file.name;
+    fileSize.textContent = formatFileSize(file.size);
+    preview.classList.remove('hidden');
+}
+
+function clearFile() {
+    const fileInput = document.getElementById('id_receipt');
+    const preview = document.getElementById('file-preview');
+    
+    fileInput.value = '';
+    preview.classList.add('hidden');
+}
+
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// Initialize form on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Set initial category field visibility
+    const transactionTypeSelect = document.getElementById('id_transaction_type');
+    if (transactionTypeSelect) {
+        toggleCategory(transactionTypeSelect.value);
+        transactionTypeSelect.addEventListener('change', function() {
+            toggleCategory(this.value);
+        });
+    }
+
+    // Handle file input changes
+    const fileInput = document.getElementById('id_receipt');
+    if (fileInput) {
+        fileInput.addEventListener('change', handleFileSelect);
+    }
+
+    // Set default date to today
+    const dateInput = document.getElementById('id_date');
+    if (dateInput && !dateInput.value) {
+        const today = new Date().toISOString().split('T')[0];
+        dateInput.value = today;
+    }
+});
+
+// Drag and drop functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const dropZone = document.querySelector('.border-dashed');
+    const fileInput = document.getElementById('id_receipt');
+
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, preventDefaults, false);
+    });
+
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, highlight, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, unhighlight, false);
+    });
+
+    function highlight(e) {
+        dropZone.classList.add('border-blue-400', 'bg-blue-50');
+    }
+
+    function unhighlight(e) {
+        dropZone.classList.remove('border-blue-400', 'bg-blue-50');
+    }
+
+    dropZone.addEventListener('drop', handleDrop, false);
+
+    function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+
+        if (files.length > 0) {
+            fileInput.files = files;
+            handleFileSelect({ target: { files: files } });
+        }
+    }
+});
+</script>
+{% endblock %}
