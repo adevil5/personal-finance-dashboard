@@ -201,4 +201,3 @@ class TransactionForm(forms.ModelForm):
             transaction.save()
 
         return transaction
-

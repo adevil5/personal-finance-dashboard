@@ -400,7 +400,12 @@ class TransactionFormIntegrationTestCase(TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             with override_settings(MEDIA_ROOT=temp_dir):
                 # Create a simple image file
-                image_content = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\rIDATx\x9cc\xf8\x0f\x00\x00\x01\x00\x01\x00\x00\x00\x00\x00\x00"
+                image_content = (
+                    b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01"
+                    b"\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89"
+                    b"\x00\x00\x00\rIDATx\x9cc\xf8\x0f\x00\x00\x01\x00\x01"
+                    b"\x00\x00\x00\x00\x00\x00"
+                )
                 receipt_file = SimpleUploadedFile(
                     "receipt.png", image_content, content_type="image/png"
                 )
@@ -421,4 +426,3 @@ class TransactionFormIntegrationTestCase(TestCase):
                 # might prevent actual saving). Note: In test environment, the
                 # secure file storage might not save the file but the form
                 # should still process correctly
-
