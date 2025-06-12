@@ -384,7 +384,7 @@ class Transaction(models.Model):
                     amount_decimal = Decimal(self.amount)
                 else:
                     amount_decimal = self.amount
-                
+
                 if amount_decimal <= Decimal("0"):
                     raise ValidationError("Amount must be greater than zero.")
             except (InvalidOperation, ValueError):
